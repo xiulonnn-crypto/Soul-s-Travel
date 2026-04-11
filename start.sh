@@ -53,7 +53,7 @@ fi
 echo -e "${GREEN}[4/4] 启动服务...${NC}"
 echo ""
 echo -e "  🐍 后端 → ${BLUE}http://localhost:5001${NC}"
-echo -e "  ⚛️  前端 → ${BLUE}http://localhost:3000${NC}"
+echo -e "  ⚛️  前端 → ${BLUE}http://localhost:5000${NC}"
 echo ""
 echo -e "${YELLOW}按 Ctrl+C 停止所有服务${NC}"
 echo ""

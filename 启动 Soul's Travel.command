@@ -64,7 +64,7 @@ done
 
 echo ""
 echo -e "  ✅  后端运行中 → ${BLUE}http://localhost:5001${NC}"
-echo -e "  🚀  正在启动前端 → ${BLUE}http://localhost:3000${NC}"
+echo -e "  🚀  正在启动前端 → ${BLUE}http://localhost:5000${NC}"
 echo ""
 echo -e "${YELLOW}按 Ctrl+C 同时停止前端和后端${NC}"
 echo "────────────────────────────────────"
