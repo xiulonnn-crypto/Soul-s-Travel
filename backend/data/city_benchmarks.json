@@ -1,0 +1,258 @@
+{
+  "曼谷": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["大皇宫", "卧佛寺", "郑王庙", "暹罗广场", "考山路", "四面佛", "水上市场", "唐人街"],
+    "typical_stay_days": 3,
+    "tips": "11月至2月为最佳旅季，避开泼水节高峰期"
+  },
+  "清迈": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 250,
+    "must_see": ["素贴山", "清迈古城", "周日夜市", "大象自然保护区", "清迈大学", "帕辛寺", "塔佩门"],
+    "typical_stay_days": 3,
+    "tips": "11月至2月天气凉爽，周日夜市必去"
+  },
+  "普吉岛": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 900,
+    "avg_hotel_price_cny": 450,
+    "must_see": ["芭东海滩", "卡塔海滩", "皮皮岛", "查龙寺", "普吉老城", "攀牙湾"],
+    "typical_stay_days": 3,
+    "tips": "11月至4月为旱季，适合海滩活动"
+  },
+  "东京": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 800,
+    "must_see": ["浅草寺", "东京塔", "涩谷十字路口", "明治神宫", "新宿御苑", "秋叶原", "银座", "上野公园"],
+    "typical_stay_days": 4,
+    "tips": "3-4月樱花季和10-11月红叶季最佳"
+  },
+  "大阪": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 650,
+    "must_see": ["大阪城", "道顿堀", "心斋桥", "通天阁", "环球影城", "黑门市场", "天王寺"],
+    "typical_stay_days": 3,
+    "tips": "美食之都，道顿堀是必去美食街"
+  },
+  "京都": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1300,
+    "avg_hotel_price_cny": 700,
+    "must_see": ["金阁寺", "伏见稻荷大社", "清水寺", "岚山竹林", "二条城", "祇园", "哲学之道"],
+    "typical_stay_days": 3,
+    "tips": "春秋两季景色最佳，建议穿和服体验"
+  },
+  "首尔": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 1000,
+    "avg_hotel_price_cny": 500,
+    "must_see": ["景福宫", "明洞", "北村韩屋村", "南山塔", "弘大", "广藏市场", "梨泰院"],
+    "typical_stay_days": 3,
+    "tips": "春秋季节最宜，冬季可体验滑雪"
+  },
+  "新加坡": {
+    "country": "新加坡",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 800,
+    "must_see": ["滨海湾花园", "鱼尾狮公园", "圣淘沙", "牛车水", "小印度", "乌节路", "滨海湾金沙"],
+    "typical_stay_days": 3,
+    "tips": "全年皆宜，注意防晒"
+  },
+  "巴厘岛": {
+    "country": "印度尼西亚",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["乌布梯田", "海神庙", "库塔海滩", "乌布猴林", "水神庙", "金巴兰海滩", "蓝梦岛"],
+    "typical_stay_days": 4,
+    "tips": "4月至10月为旱季，最适合旅行"
+  },
+  "巴黎": {
+    "country": "法国",
+    "avg_daily_cost_cny": 2000,
+    "avg_hotel_price_cny": 1200,
+    "must_see": ["埃菲尔铁塔", "卢浮宫", "凯旋门", "巴黎圣母院", "香榭丽舍大街", "蒙马特高地", "塞纳河"],
+    "typical_stay_days": 4,
+    "tips": "4-6月和9-10月气候最宜"
+  },
+  "伦敦": {
+    "country": "英国",
+    "avg_daily_cost_cny": 2200,
+    "avg_hotel_price_cny": 1300,
+    "must_see": ["大本钟", "伦敦塔桥", "白金汉宫", "大英博物馆", "伦敦眼", "海德公园", "西敏寺"],
+    "typical_stay_days": 4,
+    "tips": "5-9月天气较好，博物馆多数免费"
+  },
+  "纽约": {
+    "country": "美国",
+    "avg_daily_cost_cny": 2500,
+    "avg_hotel_price_cny": 1500,
+    "must_see": ["自由女神像", "时代广场", "中央公园", "帝国大厦", "布鲁克林大桥", "大都会博物馆", "华尔街"],
+    "typical_stay_days": 4,
+    "tips": "春秋季最佳，冬季圣诞氛围浓厚"
+  },
+  "罗马": {
+    "country": "意大利",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["斗兽场", "梵蒂冈", "许愿池", "万神殿", "西班牙广场", "圣彼得大教堂", "古罗马广场"],
+    "typical_stay_days": 3,
+    "tips": "4-6月和9-10月避开酷暑"
+  },
+  "悉尼": {
+    "country": "澳大利亚",
+    "avg_daily_cost_cny": 1800,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["悉尼歌剧院", "海港大桥", "邦迪海滩", "达令港", "蓝山", "塔龙加动物园"],
+    "typical_stay_days": 3,
+    "tips": "12月至2月为夏季，最适合海滩活动"
+  },
+  "迪拜": {
+    "country": "阿联酋",
+    "avg_daily_cost_cny": 1800,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["哈利法塔", "帆船酒店", "迪拜购物中心", "棕榈岛", "迪拜博物馆", "黄金市集"],
+    "typical_stay_days": 3,
+    "tips": "11月至3月气候温和，避开夏季高温"
+  },
+  "香港": {
+    "country": "中国",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 700,
+    "must_see": ["维多利亚港", "太平山顶", "星光大道", "迪士尼乐园", "庙街夜市", "兰桂坊", "大屿山"],
+    "typical_stay_days": 3,
+    "tips": "10月至3月天气最舒适"
+  },
+  "台北": {
+    "country": "中国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["台北101", "故宫博物院", "士林夜市", "中正纪念堂", "淡水老街", "九份", "象山"],
+    "typical_stay_days": 3,
+    "tips": "9-11月秋季气候最宜"
+  },
+  "吉隆坡": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["双子塔", "茨厂街", "国家清真寺", "黑风洞", "独立广场", "阿罗街"],
+    "typical_stay_days": 2,
+    "tips": "全年皆宜，3-4月和9-11月雨量较少"
+  },
+  "胡志明市": {
+    "country": "越南",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 200,
+    "must_see": ["中央邮局", "红教堂", "统一宫", "范五老街", "战争遗迹博物馆", "滨城市场"],
+    "typical_stay_days": 2,
+    "tips": "12月至4月为旱季，最适合旅行"
+  },
+  "河内": {
+    "country": "越南",
+    "avg_daily_cost_cny": 400,
+    "avg_hotel_price_cny": 180,
+    "must_see": ["还剑湖", "胡志明纪念堂", "三十六行街", "河内大教堂", "文庙", "西湖"],
+    "typical_stay_days": 2,
+    "tips": "10月至12月秋季气候宜人"
+  },
+  "岘港": {
+    "country": "越南",
+    "avg_daily_cost_cny": 400,
+    "avg_hotel_price_cny": 200,
+    "must_see": ["美溪海滩", "巴拿山", "会安古城", "山茶半岛", "龙桥", "五行山"],
+    "typical_stay_days": 3,
+    "tips": "2月至5月天气最佳"
+  },
+  "马尔代夫": {
+    "country": "马尔代夫",
+    "avg_daily_cost_cny": 3000,
+    "avg_hotel_price_cny": 2000,
+    "must_see": ["水屋体验", "浮潜", "日落巡航", "海豚观赏", "水下餐厅"],
+    "typical_stay_days": 4,
+    "tips": "11月至4月为旱季，最适合度假"
+  },
+  "伊斯坦布尔": {
+    "country": "土耳其",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["蓝色清真寺", "圣索菲亚大教堂", "大巴扎", "博斯普鲁斯海峡", "托普卡帕宫", "地下水宫"],
+    "typical_stay_days": 3,
+    "tips": "4-5月和9-10月气候宜人"
+  },
+  "北京": {
+    "country": "中国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 500,
+    "must_see": ["故宫", "天安门广场", "长城", "颐和园", "天坛", "南锣鼓巷", "鸟巢"],
+    "typical_stay_days": 4,
+    "tips": "9-10月秋高气爽最适合游览"
+  },
+  "上海": {
+    "country": "中国",
+    "avg_daily_cost_cny": 900,
+    "avg_hotel_price_cny": 550,
+    "must_see": ["外滩", "东方明珠", "豫园", "南京路", "迪士尼乐园", "田子坊", "陆家嘴"],
+    "typical_stay_days": 3,
+    "tips": "3-5月和9-11月气候舒适"
+  },
+  "成都": {
+    "country": "中国",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["大熊猫基地", "宽窄巷子", "锦里", "武侯祠", "都江堰", "春熙路", "杜甫草堂"],
+    "typical_stay_days": 3,
+    "tips": "3-6月和9-11月最佳，美食之都"
+  },
+  "西安": {
+    "country": "中国",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["兵马俑", "大雁塔", "回民街", "古城墙", "华清宫", "钟鼓楼", "大唐不夜城"],
+    "typical_stay_days": 3,
+    "tips": "春秋两季最佳，夏季较热"
+  },
+  "三亚": {
+    "country": "中国",
+    "avg_daily_cost_cny": 1000,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["亚龙湾", "天涯海角", "蜈支洲岛", "南山寺", "大东海", "呀诺达雨林"],
+    "typical_stay_days": 4,
+    "tips": "10月至次年3月气候最佳"
+  },
+  "曼德勒": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 350,
+    "avg_hotel_price_cny": 180,
+    "must_see": ["曼德勒皇宫", "固都陶佛塔", "乌本桥", "曼德勒山", "马哈伽纳扬僧院", "因瓦古城"],
+    "typical_stay_days": 2,
+    "tips": "11月至2月为最佳旅季，避开雨季"
+  },
+  "蒲甘": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 300,
+    "avg_hotel_price_cny": 160,
+    "must_see": ["阿南达寺", "瑞山都塔", "达玛央吉佛塔", "苏拉玛尼寺", "热气球观日出", "伊洛瓦底江日落"],
+    "typical_stay_days": 2,
+    "tips": "日出和日落时分最适合观赏佛塔群"
+  },
+  "茵莱湖": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 300,
+    "avg_hotel_price_cny": 150,
+    "must_see": ["茵莱湖游船", "水上市场", "长颈族村落", "跳猫寺", "浮岛花园", "织布工坊"],
+    "typical_stay_days": 2,
+    "tips": "10月至3月气候干爽，适合游湖"
+  },
+  "仰光": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 400,
+    "avg_hotel_price_cny": 200,
+    "must_see": ["瑞光大金塔", "仰光环城火车", "昂山市场", "苏雷塔", "卡拉威宫", "茵雅湖"],
+    "typical_stay_days": 2,
+    "tips": "最大城市，瑞光大金塔必去"
+  }
+}

@@ -72,6 +72,17 @@ echo "────────────────────────�
 # Ctrl+C 清理两个进程
 trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
 
+# 后台等待前端就绪后自动打开浏览器
+(
+  for i in $(seq 1 15); do
+    sleep 1
+    if curl -s http://localhost:5000 >/dev/null 2>&1; then
+      open "http://localhost:5000/"
+      break
+    fi
+  done
+) &
+
 # 前台启动前端
 npm --prefix "$FRONTEND_DIR" run dev
 

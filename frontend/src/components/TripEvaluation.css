@@ -1,0 +1,56 @@
+/* 评价容器 */
+.eval-container { display: flex; flex-direction: column; gap: 16px; }
+
+/* 加载态 */
+.eval-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: #8e99a4; gap: 16px; }
+
+/* 综合评分区 */
+.eval-hero { display: flex; align-items: center; gap: 24px; padding: 24px; }
+.eval-ring { width: 88px; height: 88px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.eval-ring-inner { width: 72px; height: 72px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.eval-ring-num { font-size: 28px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+.eval-ring-label { font-size: 10px; color: #8e99a4; }
+.eval-hero-body { flex: 1; }
+.eval-hero-title { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+.eval-hero-sub { font-size: 12px; color: #8e99a4; margin-top: 4px; }
+.eval-stars { display: flex; gap: 2px; }
+.star-on { font-size: 14px; }
+.star-off { font-size: 14px; opacity: 0.2; }
+.eval-regen-btn { flex-shrink: 0; border-radius: 20px !important; }
+
+/* 维度评分网格 */
+.eval-dims-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 768px) { .eval-dims-grid { grid-template-columns: repeat(2, 1fr); } }
+.eval-dim-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.dim-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dim-icon-label { font-size: 13px; font-weight: 600; }
+.dim-score { font-size: 20px; font-weight: 800; }
+.dim-bar-track { background: #eef2f7; height: 6px; border-radius: 3px; margin-bottom: 10px; }
+.dim-bar-fill { height: 6px; border-radius: 3px; transition: width 0.6s ease; }
+.dim-text { font-size: 12px; color: #555; line-height: 1.5; }
+.dim-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* 标签 */
+.eval-tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; }
+.tag-positive { background: #dcfce7; color: #16a34a; }
+.tag-warning { background: #fef9c3; color: #ca8a04; }
+
+/* 城市评价 */
+.eval-section-title { font-size: 15px; font-weight: 700; margin: 0 0 16px; }
+.eval-city-card { border: 1px solid #f0f2f5; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.eval-city-card:last-child { margin-bottom: 0; }
+.city-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.city-card-left { display: flex; align-items: center; gap: 8px; }
+.city-badge { width: 28px; height: 28px; border-radius: 8px; background: #0099ff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.city-name { font-size: 14px; font-weight: 700; }
+.city-meta { font-size: 11px; color: #8e99a4; }
+.city-score-pill { color: #fff; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.city-card-text { font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 8px; }
+.city-missed { margin-top: 8px; font-size: 11px; color: #8e99a4; }
+
+/* 后续建议 */
+.eval-suggestion-item { background: #f0f7ff; border-radius: 10px; padding: 12px 16px; border-left: 3px solid #0099ff; margin-bottom: 10px; font-size: 13px; color: #333; line-height: 1.5; }
+.eval-suggestion-item:last-child { margin-bottom: 0; }
+
+/* 复用详情页卡片 */
+.eval-cities, .eval-suggestions { padding: 20px; }

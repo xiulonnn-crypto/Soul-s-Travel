@@ -22,7 +22,12 @@ export default function ChatPanel({ onParsed }) {
     setLoading(true)
     try {
       const result = await parseApi.text(text)
-      addMsg('ai', `解析完成！识别到 ${result.trip?.title || '行程'}，已填入右侧表单。`)
+      if (result.type === 'expense' && result.expenses?.length > 0) {
+        const exp = result.expenses[0]
+        addMsg('ai', `已添加费用：${exp.description}，¥${exp.amount.toFixed(2)}，已更新到费用明细。`)
+      } else {
+        addMsg('ai', `解析完成！识别到 ${result.trip?.title || '行程'}，已填入右侧表单。`)
+      }
       onParsed(result)
     } catch (e) {
       addMsg('ai', `解析失败: ${e.message}`)

@@ -3,9 +3,11 @@
 .detail-chips { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 .detail-actions { display: flex; gap: 8px; }
 
-.detail-body { display: flex; gap: 20px; }
-.detail-main { flex: 1; }
-.detail-sidebar { width: 280px; flex-shrink: 0; }
+.detail-tabs .ant-tabs-nav { background: #fff; border-radius: 16px; padding: 0 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 16px !important; }
+.detail-tabs .ant-tabs-tab { font-size: 14px; font-weight: 600; padding: 14px 4px; }
+.detail-tabs .ant-tabs-content-holder { }
+
+.detail-itinerary { display: flex; flex-direction: column; gap: 0; }
 
 .leg-section { margin-bottom: 16px; }
 .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
@@ -25,5 +27,19 @@
 .item-icon.hotel { background: #f5eafa; }
 .item-icon.food { background: #eafaf0; }
 .item-name { font-size: 13px; font-weight: 600; }
+
+/* 开销明细 tab */
+.expense-detail-tab { display: flex; flex-direction: column; gap: 16px; }
+.expense-items-list { background: #fff; border-radius: 16px; padding: 8px 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.expense-detail-item { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f5f7fa; }
+.expense-detail-item:last-child { border-bottom: none; }
+.edi-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.edi-info { flex: 1; min-width: 0; }
+.edi-desc { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edi-date { font-size: 11px; color: #8e99a4; margin-top: 2px; }
+.edi-cat { font-size: 11px; font-weight: 600; margin-right: 8px; flex-shrink: 0; }
+.edi-amount { font-size: 14px; font-weight: 700; color: #1a1a2e; flex-shrink: 0; }
+
+.expense-summary-footer { }
 
 .loading { padding: 60px; text-align: center; color: #8e99a4; }

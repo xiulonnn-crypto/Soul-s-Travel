@@ -13,5 +13,5 @@ def get_session():
 
 
 def init_db():
-    from models import Trip, Leg, TripDay, Expense  # noqa: F401
+    from models import Trip, Leg, TripDay, Expense, TripEvaluation  # noqa: F401
     Base.metadata.create_all(engine)

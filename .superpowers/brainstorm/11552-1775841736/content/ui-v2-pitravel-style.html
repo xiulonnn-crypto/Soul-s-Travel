@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soul's Travel - UI V2 (PiTravel Style)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: #f5f7fa; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
+
+  :root {
+    --blue: #0099ff;
+    --blue-light: #e8f4ff;
+    --blue-soft: #b3deff;
+    --green: #34c759;
+    --green-light: #eafaf0;
+    --orange: #ff9500;
+    --orange-light: #fff5e6;
+    --purple: #af52de;
+    --purple-light: #f5eafa;
+    --pink: #ff6b8a;
+    --gray-bg: #f5f7fa;
+    --gray-100: #f0f2f5;
+    --gray-200: #e5e8ed;
+    --gray-300: #d1d5db;
+    --gray-500: #8e99a4;
+    --gray-700: #4a5568;
+    --gray-900: #1a1a2e;
+    --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --card-shadow-hover: 0 8px 24px rgba(0,0,0,0.1);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-pill: 50px;
+  }
+
+  /* Page Tabs */
+  .page-tabs { position:fixed; top:0; left:0; right:0; z-index:1000; background:#fff; display:flex; gap:0; padding:0 20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .page-tab { padding:14px 18px; color:var(--gray-500); font-size:13px; font-weight:500; cursor:pointer; border-bottom:2.5px solid transparent; transition:all 0.2s; }
+  .page-tab:hover { color:var(--gray-700); }
+  .page-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+  .page-tab-hint { margin-left:auto; padding:14px 0; color:var(--gray-300); font-size:11px; }
+
+  .page-section { display:none; padding-top:52px; min-height:100vh; background:var(--gray-bg); }
+  .page-section.active { display:block; }
+
+  /* App Shell */
+  .app-shell { display:flex; min-height:calc(100vh - 52px); }
+  .sidebar { width:72px; background:#fff; border-right:1px solid var(--gray-100); display:flex; flex-direction:column; align-items:center; padding:20px 0; gap:8px; position:sticky; top:52px; height:calc(100vh - 52px); }
+  .sidebar-logo { width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, var(--blue), #66ccff); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:16px; margin-bottom:20px; }
+  .nav-btn { width:48px; height:48px; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; transition:all 0.15s; color:var(--gray-500); font-size:10px; }
+  .nav-btn:hover { background:var(--gray-100); }
+  .nav-btn.active { background:var(--blue-light); color:var(--blue); }
+  .nav-btn .ico { font-size:20px; }
+
+  .main { flex:1; padding:28px 32px; max-width:1100px; }
+
+  /* Typography */
+  .page-title { font-size:26px; font-weight:700; margin-bottom:4px; letter-spacing:-0.3px; }
+  .page-title .hl { color:var(--blue); }
+  .page-sub { font-size:13px; color:var(--gray-500); margin-bottom:24px; }
+
+  /* Cards */
+  .card { background:#fff; border-radius:var(--radius); box-shadow:var(--card-shadow); overflow:hidden; transition:all 0.25s; }
+  .card:hover { box-shadow:var(--card-shadow-hover); transform:translateY(-2px); }
+  .card-pad { padding:20px; }
+
+  /* Stat Pills */
+  .stat-row { display:flex; gap:12px; margin-bottom:24px; }
+  .stat-pill { flex:1; background:#fff; border-radius:var(--radius); padding:18px 20px; box-shadow:var(--card-shadow); display:flex; align-items:center; gap:14px; }
+  .stat-icon { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .stat-icon.blue { background:var(--blue-light); }
+  .stat-icon.green { background:var(--green-light); }
+  .stat-icon.orange { background:var(--orange-light); }
+  .stat-icon.purple { background:var(--purple-light); }
+  .stat-val { font-size:22px; font-weight:700; line-height:1.1; }
+  .stat-label { font-size:11px; color:var(--gray-500); margin-top:2px; }
+
+  /* Section Head */
+  .sec-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .sec-title { font-size:17px; font-weight:600; }
+
+  /* Pill Buttons */
+  .pill { display:inline-block; padding:6px 16px; border-radius:var(--radius-pill); font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; border:1px solid var(--gray-200); color:var(--gray-700); background:#fff; }
+  .pill:hover { border-color:var(--blue-soft); color:var(--blue); }
+  .pill.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .pill-group { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-blue { padding:8px 22px; border-radius:var(--radius-pill); background:var(--blue); color:#fff; font-size:13px; font-weight:600; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s; }
+  .btn-blue:hover { background:#0088ee; }
+  .btn-ghost { padding:8px 18px; border-radius:var(--radius-pill); background:transparent; color:var(--gray-700); font-size:13px; font-weight:500; border:1px solid var(--gray-200); cursor:pointer; }
+
+  /* Trip Cards - PiTravel Style (horizontal, pastel bg + right photo) */
+  .trip-grid { display:flex; flex-direction:column; gap:14px; }
+  .trip-card { border-radius:20px; padding:22px 22px 22px 26px; display:flex; align-items:center; gap:20px; cursor:pointer; transition:all 0.25s; box-shadow:none; }
+  .trip-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.08); }
+  .trip-card.bg-green { background:linear-gradient(135deg,#e8f7ee,#d4f0df); }
+  .trip-card.bg-yellow { background:linear-gradient(135deg,#fef6e4,#fdecc8); }
+  .trip-card.bg-blue { background:linear-gradient(135deg,#e6f2ff,#cce5ff); }
+  .trip-card.bg-pink { background:linear-gradient(135deg,#fde8ef,#fbd0df); }
+  .trip-card.bg-purple { background:linear-gradient(135deg,#f0e6f6,#e3d0f0); }
+  .trip-card .tc-info { flex:1; min-width:0; }
+  .trip-card .tc-title { font-size:19px; font-weight:700; margin-bottom:8px; color:var(--gray-900); }
+  .trip-card .tc-meta { font-size:12px; color:var(--gray-500); margin-bottom:4px; line-height:1.6; }
+  .trip-card .tc-meta b { color:var(--gray-700); font-weight:600; }
+  .trip-card .tc-cost { font-size:14px; font-weight:700; color:var(--orange); margin-top:6px; }
+  .trip-card .tc-photos { display:flex; gap:6px; flex-shrink:0; }
+  .trip-card .tc-photo { width:90px; height:90px; border-radius:14px; object-fit:cover; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .trip-card .tc-photo.ph1 { background:linear-gradient(135deg,#c1dfc4,#a8e6cf); }
+  .trip-card .tc-photo.ph2 { background:linear-gradient(135deg,#ffd3b6,#ffaaa5); }
+  .trip-card .tc-photo.ph3 { background:linear-gradient(135deg,#a8d8ea,#86c5da); }
+  .trip-card .tc-photo.ph4 { background:linear-gradient(135deg,#d4a5ff,#c084f5); }
+  .trip-card .tc-photo.ph5 { background:linear-gradient(135deg,#ffeaa7,#fdcb6e); }
+  .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+  .status-dot.done { background:var(--green); }
+  .status-dot.plan { background:var(--blue); }
+
+  /* Detail Page */
+  .detail-hero { background:#fff; border-radius:var(--radius); padding:28px; margin-bottom:20px; box-shadow:var(--card-shadow); }
+  .detail-title { font-size:24px; font-weight:700; margin-bottom:10px; }
+  .detail-chips { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .chip { padding:5px 14px; border-radius:var(--radius-pill); font-size:12px; font-weight:500; display:flex; align-items:center; gap:5px; }
+  .chip-blue { background:var(--blue-light); color:var(--blue); }
+  .chip-green { background:var(--green-light); color:#1b8a3a; }
+  .chip-orange { background:var(--orange-light); color:#c67200; }
+
+  /* Day Timeline */
+  .day-timeline { position:relative; }
+  .day-anchor { position:sticky; top:60px; z-index:10; background:var(--blue); color:#fff; display:inline-flex; align-items:center; gap:6px; padding:6px 16px; border-radius:var(--radius-pill); font-size:13px; font-weight:600; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,153,255,0.3); }
+  .day-items-list { display:flex; flex-direction:column; gap:10px; margin-bottom:24px; padding-left:16px; border-left:2px solid var(--gray-200); }
+  .day-item { background:#fff; border-radius:var(--radius-sm); padding:14px 16px; box-shadow:0 1px 4px rgba(0,0,0,0.04); display:flex; align-items:center; gap:12px; position:relative; }
+  .day-item::before { content:''; position:absolute; left:-23px; top:50%; transform:translateY(-50%); width:10px; height:10px; border-radius:50%; background:var(--blue-light); border:2px solid var(--blue); }
+  .day-item .item-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .day-item .item-icon.spot { background:#fff5e6; }
+  .day-item .item-icon.transport { background:var(--blue-light); }
+  .day-item .item-icon.hotel { background:var(--purple-light); }
+  .day-item .item-icon.food { background:var(--green-light); }
+  .item-text { flex:1; }
+  .item-name { font-size:13px; font-weight:600; }
+  .item-sub { font-size:11px; color:var(--gray-500); margin-top:2px; }
+
+  /* Transport Ticket Card */
+  .ticket-card { background:#fff; border-radius:var(--radius); padding:16px 20px; box-shadow:var(--card-shadow); display:flex; align-items:center; gap:16px; margin-bottom:10px; position:relative; overflow:hidden; }
+  .ticket-card::after { content:''; position:absolute; right:80px; top:-8px; bottom:-8px; border-left:2px dashed var(--gray-200); }
+  .ticket-from, .ticket-to { text-align:center; }
+  .ticket-code { font-size:20px; font-weight:800; letter-spacing:1px; }
+  .ticket-city { font-size:11px; color:var(--gray-500); margin-top:2px; }
+  .ticket-arrow { color:var(--blue); font-size:18px; margin:0 8px; }
+  .ticket-info { margin-left:auto; text-align:right; }
+  .ticket-flight { font-size:12px; font-weight:600; color:var(--blue); }
+  .ticket-time { font-size:11px; color:var(--gray-500); margin-top:2px; }
+
+  /* Expense sidebar */
+  .expense-card { background:#fff; border-radius:var(--radius); padding:20px; box-shadow:var(--card-shadow); margin-bottom:16px; }
+  .expense-title { font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+  .expense-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .expense-bar-label { font-size:11px; color:var(--gray-500); width:36px; }
+  .expense-bar { flex:1; height:10px; background:var(--gray-100); border-radius:8px; overflow:hidden; }
+  .expense-bar-fill { height:100%; border-radius:8px; }
+  .expense-bar-fill.transport { background:linear-gradient(90deg,#0099ff,#66ccff); }
+  .expense-bar-fill.hotel { background:linear-gradient(90deg,#af52de,#d4a0ed); }
+  .expense-bar-val { font-size:11px; font-weight:600; width:52px; text-align:right; }
+  .expense-total { display:flex; justify-content:space-between; font-size:16px; font-weight:700; padding-top:12px; margin-top:8px; border-top:2px solid var(--gray-900); }
+
+  /* Timeline Page */
+  .tl-year { font-size:28px; font-weight:800; color:var(--gray-900); margin:28px 0 14px; }
+  .tl-year:first-child { margin-top:0; }
+  .tl-year .yr-badge { font-size:13px; font-weight:600; color:var(--blue); background:var(--blue-light); padding:3px 10px; border-radius:var(--radius-pill); margin-left:8px; vertical-align:middle; }
+  .tl-track { padding-left:28px; position:relative; }
+  .tl-track::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:var(--gray-200); }
+  .tl-node { position:relative; margin-bottom:16px; }
+  .tl-node::before { content:''; position:absolute; left:-20px; top:18px; width:12px; height:12px; border-radius:50%; background:#fff; border:3px solid var(--blue); z-index:1; }
+  .tl-card { background:#fff; border-radius:var(--radius); padding:18px 20px; box-shadow:var(--card-shadow); cursor:pointer; transition:all 0.2s; }
+  .tl-card:hover { box-shadow:var(--card-shadow-hover); }
+  .tl-card-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .tl-card-route { font-size:12px; color:var(--blue); font-weight:500; margin-bottom:6px; }
+  .tl-card-meta { display:flex; gap:16px; font-size:11px; color:var(--gray-500); }
+  .tl-card-cost { color:var(--orange); font-weight:700; }
+
+  /* Stats Page */
+  .stats-overview { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:24px; }
+  .stats-num { background:#fff; border-radius:var(--radius); padding:16px 12px; text-align:center; box-shadow:var(--card-shadow); }
+  .stats-num .n { font-size:24px; font-weight:800; color:var(--gray-900); }
+  .stats-num .l { font-size:10px; color:var(--gray-500); margin-top:4px; }
+  .chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .chart-card { background:#fff; border-radius:var(--radius); padding:20px; box-shadow:var(--card-shadow); }
+  .chart-card-title { font-size:14px; font-weight:600; margin-bottom:16px; }
+  .rank-item { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--gray-100); }
+  .rank-item:last-child { border-bottom:none; }
+  .rank-n { width:22px; height:22px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; background:var(--gray-100); color:var(--gray-500); flex-shrink:0; }
+  .rank-item:nth-child(1) .rank-n { background:var(--orange-light); color:var(--orange); }
+  .rank-item:nth-child(2) .rank-n { background:var(--blue-light); color:var(--blue); }
+  .rank-item:nth-child(3) .rank-n { background:var(--purple-light); color:var(--purple); }
+  .rank-name { font-size:13px; font-weight:500; width:64px; }
+  .rank-bar { flex:1; height:8px; background:var(--gray-100); border-radius:6px; overflow:hidden; }
+  .rank-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,var(--blue),#66ccff); }
+  .rank-cnt { font-size:11px; color:var(--gray-500); width:32px; text-align:right; }
+  .bar-chart { display:flex; align-items:flex-end; gap:14px; height:180px; padding:0 4px; }
+  .bar-col { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+  .bar-val { font-size:10px; font-weight:600; color:var(--gray-700); }
+  .bar-rect { width:100%; border-radius:6px 6px 0 0; background:linear-gradient(180deg,var(--blue),#66ccff); }
+  .bar-lbl { font-size:10px; color:var(--gray-500); }
+  .pie-wrap { display:flex; align-items:center; gap:24px; }
+  .pie-circle { width:140px; height:140px; border-radius:50%; flex-shrink:0; }
+  .pie-legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--gray-700); margin-bottom:8px; }
+  .pie-dot { width:10px; height:10px; border-radius:4px; flex-shrink:0; }
+
+  /* Editor */
+  .editor-shell { display:flex; height:calc(100vh - 52px); }
+  .chat-side { width:400px; background:#fff; border-right:1px solid var(--gray-100); display:flex; flex-direction:column; }
+  .chat-top { padding:16px 20px; border-bottom:1px solid var(--gray-100); display:flex; align-items:center; gap:10px; }
+  .chat-top .ai-avatar { width:32px; height:32px; border-radius:10px; background:linear-gradient(135deg,var(--blue),#66ccff); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; }
+  .chat-top .ai-name { font-weight:600; font-size:14px; }
+  .chat-top .ai-tag { font-size:10px; color:var(--gray-500); }
+  .chat-body { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+  .msg { max-width:88%; }
+  .msg.ai { align-self:flex-start; }
+  .msg.user { align-self:flex-end; }
+  .msg .bub { padding:12px 16px; border-radius:16px; font-size:13px; line-height:1.65; }
+  .msg.ai .bub { background:var(--gray-100); border-bottom-left-radius:4px; }
+  .msg.user .bub { background:var(--blue); color:#fff; border-bottom-right-radius:4px; }
+  .msg .who { font-size:10px; color:var(--gray-500); margin-bottom:4px; }
+  .msg.user .who { text-align:right; }
+  .chat-bottom { padding:12px 16px; border-top:1px solid var(--gray-100); display:flex; gap:8px; align-items:center; }
+  .chat-input { flex:1; padding:10px 14px; border-radius:12px; border:1.5px solid var(--gray-200); font-size:13px; outline:none; transition:border 0.15s; }
+  .chat-input:focus { border-color:var(--blue); }
+  .upload-icon { width:36px; height:36px; border-radius:10px; background:var(--gray-100); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:var(--gray-500); }
+  .form-side { flex:1; overflow-y:auto; padding:24px 28px; background:var(--gray-bg); }
+  .form-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .form-head-title { font-size:17px; font-weight:700; }
+  .form-block { background:#fff; border-radius:var(--radius); padding:18px 20px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+  .form-block-title { font-size:13px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--gray-700); }
+  .f-row { display:flex; gap:12px; margin-bottom:10px; }
+  .f-group { flex:1; }
+  .f-label { font-size:11px; color:var(--gray-500); margin-bottom:3px; display:flex; align-items:center; gap:4px; }
+  .f-input { width:100%; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:10px; font-size:13px; outline:none; }
+  .f-input:focus { border-color:var(--blue); }
+  .f-input.ai-fill { background:#f0f9ff; border-color:var(--blue-soft); }
+  .ai-dot { width:6px; height:6px; border-radius:50%; background:var(--blue); display:inline-block; }
+  .day-form { background:var(--blue-light); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+  .day-form-label { font-size:12px; font-weight:600; color:var(--blue); margin-bottom:8px; }
+
+  /* Share */
+  .share-wrap { max-width:720px; margin:0 auto; padding:40px 24px; }
+  .share-brand { text-align:center; margin-bottom:32px; }
+  .share-logo { display:inline-flex; align-items:center; gap:8px; color:var(--blue); font-weight:700; font-size:15px; margin-bottom:12px; }
+  .share-logo .dot { width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,var(--blue),#66ccff); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+  .share-h1 { font-size:28px; font-weight:800; margin-bottom:10px; }
+  .share-chips { display:flex; justify-content:center; gap:10px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="page-tabs">
+  <div class="page-tab active" onclick="go('home')">首页</div>
+  <div class="page-tab" onclick="go('trips')">行程列表</div>
+  <div class="page-tab" onclick="go('editor')">新建行程</div>
+  <div class="page-tab" onclick="go('detail')">行程详情</div>
+  <div class="page-tab" onclick="go('timeline')">时间线</div>
+  <div class="page-tab" onclick="go('stats')">统计</div>
+  <div class="page-tab" onclick="go('share')">分享页</div>
+  <div class="page-tab-hint">点击标签切换 ↑</div>
+</div>
+
+<!-- ===== HOME ===== -->
+<div id="p-home" class="page-section active">
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="sidebar-logo">S</div>
+    <div class="nav-btn active"><span class="ico">🏠</span>首页</div>
+    <div class="nav-btn"><span class="ico">✈️</span>行程</div>
+    <div class="nav-btn"><span class="ico">📅</span>时间线</div>
+    <div class="nav-btn"><span class="ico">📊</span>统计</div>
+  </div>
+  <div class="main">
+    <div class="page-title">我的<span class="hl">旅行世界</span></div>
+    <div class="page-sub">记录每一段旅程，让回忆有迹可循</div>
+
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-icon blue">✈️</div><div><div class="stat-val">12</div><div class="stat-label">旅行次数</div></div></div>
+      <div class="stat-pill"><div class="stat-icon green">🌍</div><div><div class="stat-val">8</div><div class="stat-label">去过的国家</div></div></div>
+      <div class="stat-pill"><div class="stat-icon orange">📅</div><div><div class="stat-val">86</div><div class="stat-label">旅行天数</div></div></div>
+      <div class="stat-pill"><div class="stat-icon purple">💰</div><div><div class="stat-val">¥128K</div><div class="stat-label">总花费</div></div></div>
+    </div>
+
+    <div class="sec-head"><div class="sec-title">最近行程</div><button class="btn-blue">+ 新建行程</button></div>
+    <div class="trip-grid">
+      <div class="trip-card bg-green">
+        <div class="tc-info">
+          <div class="tc-title">清迈5日休闲游</div>
+          <div class="tc-meta">03.15 至 03.19 &nbsp; <b>5天4晚</b><br>8个地点 &nbsp; 🇹🇭 泰国</div>
+          <div class="tc-cost">¥6,800</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph1">🏯</div><div class="tc-photo ph2">🌿</div></div>
+      </div>
+      <div class="trip-card bg-pink">
+        <div class="tc-info">
+          <div class="tc-title">缅甸7日游</div>
+          <div class="tc-meta">10.01 至 10.07 &nbsp; <b>7天6晚</b><br>25个地点 &nbsp; 🇲🇲 缅甸</div>
+          <div class="tc-cost">¥15,716</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph2">🏛</div><div class="tc-photo ph3">🌅</div></div>
+      </div>
+      <div class="trip-card bg-blue">
+        <div class="tc-info">
+          <div class="tc-title">日本关西10日</div>
+          <div class="tc-meta">05.01 至 05.10 &nbsp; <b>10天9晚</b><br>32个地点 &nbsp; 🇯🇵 日本</div>
+          <div class="tc-cost">¥22,340</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph3">⛩️</div><div class="tc-photo ph5">🍣</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TRIPS ===== -->
+<div id="p-trips" class="page-section">
+<div class="app-shell">
+  <div class="sidebar"><div class="sidebar-logo">S</div><div class="nav-btn"><span class="ico">🏠</span>首页</div><div class="nav-btn active"><span class="ico">✈️</span>行程</div><div class="nav-btn"><span class="ico">📅</span>时间线</div><div class="nav-btn"><span class="ico">📊</span>统计</div></div>
+  <div class="main">
+    <div class="sec-head"><div><div class="page-title">我的<span class="hl">行程</span></div><div class="page-sub">共 12 次旅行</div></div><button class="btn-blue">+ 新建行程</button></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <div class="pill active">全部</div><div class="pill">已完成</div><div class="pill">计划中</div>
+      <div style="flex:1"></div>
+      <input class="chat-input" style="width:200px;border-radius:50px;padding:6px 16px;font-size:12px;" placeholder="🔍 搜索目的地...">
+    </div>
+    <div class="trip-grid">
+      <div class="trip-card bg-green">
+        <div class="tc-info">
+          <div class="tc-title">清迈5日休闲游</div>
+          <div class="tc-meta">03.15 至 03.19 &nbsp; <b>5天4晚</b><br>8个地点 &nbsp; 🇹🇭 泰国</div>
+          <div class="tc-cost">¥6,800</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph1">🏯</div><div class="tc-photo ph2">🌿</div></div>
+      </div>
+      <div class="trip-card bg-yellow">
+        <div class="tc-info">
+          <div class="tc-title">意大利深度12日</div>
+          <div class="tc-meta">09.10 至 09.21 &nbsp; <b>12天11晚</b><br>55个地点 &nbsp; 🇮🇹 意大利</div>
+          <div class="tc-cost">¥35,200</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph5">🏛</div><div class="tc-photo ph2">🍝</div></div>
+      </div>
+      <div class="trip-card bg-purple">
+        <div class="tc-info">
+          <div class="tc-title">云南8日自驾</div>
+          <div class="tc-meta">04.28 至 05.05 &nbsp; <b>8天7晚</b><br>18个地点 &nbsp; 🇨🇳 中国</div>
+          <div class="tc-cost">¥12,500</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph4">🏔</div><div class="tc-photo ph1">🌾</div></div>
+      </div>
+      <div class="trip-card bg-pink">
+        <div class="tc-info">
+          <div class="tc-title">缅甸7日游</div>
+          <div class="tc-meta">10.01 至 10.07 &nbsp; <b>7天6晚</b><br>25个地点 &nbsp; 🇲🇲 缅甸</div>
+          <div class="tc-cost">¥15,716</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph2">🏛</div><div class="tc-photo ph3">🌅</div></div>
+      </div>
+      <div class="trip-card bg-blue">
+        <div class="tc-info">
+          <div class="tc-title">日本关西10日</div>
+          <div class="tc-meta">05.01 至 05.10 &nbsp; <b>10天9晚</b><br>32个地点 &nbsp; 🇯🇵 日本</div>
+          <div class="tc-cost">¥22,340</div>
+        </div>
+        <div class="tc-photos"><div class="tc-photo ph3">⛩️</div><div class="tc-photo ph5">🍣</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== EDITOR ===== -->
+<div id="p-editor" class="page-section">
+<div class="editor-shell" style="margin-top:52px;">
+  <div class="chat-side">
+    <div class="chat-top"><div class="ai-avatar">🤖</div><div><div class="ai-name">AI 行程助手</div><div class="ai-tag">Claude · 智能解析</div></div></div>
+    <div class="chat-body">
+      <div class="msg ai"><div class="who">AI 助手</div><div class="bub">你好！我可以帮你快速创建行程 ✨<br><br>📄 <b>上传行程 PDF</b><br>📝 <b>粘贴文字描述</b><br>💬 <b>直接告诉我去了哪里</b></div></div>
+      <div class="msg user"><div class="who">你</div><div class="bub">📎 已上传: 201910缅甸.pdf</div></div>
+      <div class="msg ai"><div class="who">AI 助手</div><div class="bub">解析完成！识别到：<br><br>📍 <b>缅甸7日游</b><br>📅 2019.10.01 - 10.07 · 2人<br>🏙️ 曼德勒 → 蒲甘 → 茵莱湖<br>💰 ¥15,716.04<br><br>已填入右侧表单，请检查 →</div></div>
+      <div class="msg user"><div class="who">你</div><div class="bub">Day 6 的住宿改成阿南塔茵莱度假村</div></div>
+      <div class="msg ai"><div class="who">AI 助手</div><div class="bub">✅ 已更新 Day 6 住宿 → 阿南塔茵莱度假村</div></div>
+    </div>
+    <div class="chat-bottom"><div class="upload-icon">📎</div><input class="chat-input" placeholder="输入修改指令..."><button class="btn-blue" style="padding:8px 16px;">发送</button></div>
+  </div>
+  <div class="form-side">
+    <div class="form-head"><div class="form-head-title">行程表单</div><div style="display:flex;gap:8px;"><button class="btn-ghost">取消</button><button class="btn-blue">💾 保存行程</button></div></div>
+    <div class="form-block">
+      <div class="form-block-title">📋 基本信息</div>
+      <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 标题</div><input class="f-input ai-fill" value="SouL的缅甸行程"></div><div class="f-group" style="flex:0.4"><div class="f-label"><span class="ai-dot"></span> 人数</div><input class="f-input ai-fill" value="2"></div></div>
+      <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 开始</div><input class="f-input ai-fill" value="2019-10-01"></div><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 结束</div><input class="f-input ai-fill" value="2019-10-07"></div></div>
+    </div>
+    <div class="form-block">
+      <div class="form-block-title">🏙️ 站点 1 · 曼德勒 <span style="color:var(--gray-500);font-weight:400;font-size:11px;">10/01 - 10/03</span></div>
+      <div class="day-form">
+        <div class="day-form-label">Day 1 · 10月01日</div>
+        <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 活动</div><input class="f-input ai-fill" value="固都陶佛塔, 曼德勒山, 绿象餐厅"></div></div>
+        <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 交通</div><input class="f-input ai-fill" value="广州→曼谷 FD531, 曼谷→曼德勒 FD244"></div></div>
+        <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 住宿</div><input class="f-input ai-fill" value="蒲甘国王酒店 Bagan King Hotel"></div></div>
+      </div>
+      <div class="day-form">
+        <div class="day-form-label">Day 2 · 10月02日</div>
+        <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 活动</div><input class="f-input ai-fill" value="敏贡古城, 敏贡佛塔, 实皆古城, 因瓦古城, 乌本桥..."></div></div>
+        <div class="f-row"><div class="f-group"><div class="f-label"><span class="ai-dot"></span> 住宿</div><input class="f-input ai-fill" value="蒲甘国王酒店 Bagan King Hotel"></div></div>
+      </div>
+      <div style="color:var(--blue);font-size:12px;font-weight:500;cursor:pointer;padding:4px 0;">+ Day 3 · 10月03日 ...</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== DETAIL ===== -->
+<div id="p-detail" class="page-section">
+<div class="app-shell">
+  <div class="sidebar"><div class="sidebar-logo">S</div><div class="nav-btn"><span class="ico">🏠</span>首页</div><div class="nav-btn active"><span class="ico">✈️</span>行程</div><div class="nav-btn"><span class="ico">📅</span>时间线</div><div class="nav-btn"><span class="ico">📊</span>统计</div></div>
+  <div class="main">
+    <div class="detail-hero">
+      <div class="detail-title">🇲🇲 SouL的缅甸行程</div>
+      <div class="detail-chips">
+        <div class="chip chip-blue">📅 2019.10.01 - 10.07</div>
+        <div class="chip chip-green">👥 2人 · 7天</div>
+        <div class="chip chip-orange">💰 ¥15,716 · 人均 ¥7,858</div>
+      </div>
+      <div style="display:flex;gap:8px;"><button class="btn-blue">✏️ 编辑</button><button class="btn-ghost">🔗 生成分享链接</button></div>
+    </div>
+
+    <div style="display:flex;gap:20px;">
+      <div style="flex:1;">
+        <!-- Leg 1 -->
+        <div class="card-pad card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--gray-100);">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">1</div>
+            <div><div style="font-size:16px;font-weight:700;">曼德勒 Mandalay</div><div style="font-size:11px;color:var(--gray-500);">10/01 - 10/03 · 3天</div></div>
+          </div>
+
+          <div class="day-anchor">📅 Day 1 · 10.01 周二</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">广州 → 曼谷</div><div class="item-sub">FD531 · 00:10 - 02:10</div></div></div>
+            <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">曼谷 → 曼德勒</div><div class="item-sub">FD244 · 11:00 - 12:15</div></div></div>
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">固都陶佛塔</div><div class="item-sub">Kuthodaw Pagoda · 世界上最大的书</div></div></div>
+            <div class="day-item"><div class="item-icon spot">⛰️</div><div class="item-text"><div class="item-name">曼德勒山</div><div class="item-sub">Mandalay Hill · 俯瞰全城日落</div></div></div>
+            <div class="day-item"><div class="item-icon food">🍽</div><div class="item-text"><div class="item-name">绿象餐厅</div><div class="item-sub">晚餐</div></div></div>
+            <div class="day-item"><div class="item-icon hotel">🏨</div><div class="item-text"><div class="item-name">蒲甘国王酒店</div><div class="item-sub">Bagan King Hotel Mandalay</div></div></div>
+          </div>
+
+          <div class="day-anchor">📅 Day 2 · 10.02 周三</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">敏贡古城 → 敏贡佛塔 → 敏贡大钟</div><div class="item-sub">伊洛瓦底江上游 · 世界最大铜钟</div></div></div>
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">实皆古城 → 提达固佛学院 → 实皆山</div><div class="item-sub">500座佛塔 · 6000僧侣修行</div></div></div>
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">因瓦古城 → 马哈昂美寺</div><div class="item-sub">四个世纪古都 · 马车穿行</div></div></div>
+            <div class="day-item"><div class="item-icon spot">🌅</div><div class="item-text"><div class="item-name">乌本桥 U Bein Bridge</div><div class="item-sub">世界最长柚木桥 · 日落绝佳</div></div></div>
+            <div class="day-item"><div class="item-icon hotel">🏨</div><div class="item-text"><div class="item-name">蒲甘国王酒店</div><div class="item-sub">Bagan King Hotel Mandalay</div></div></div>
+          </div>
+
+          <div class="day-anchor">📅 Day 3 · 10.03 周四</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">马哈根达杨僧院</div><div class="item-sub">千人僧饭</div></div></div>
+            <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">曼德勒 → 蒲甘</div><div class="item-sub">7Y241 · 17:45 - 18:15</div></div></div>
+          </div>
+        </div>
+
+        <!-- Leg 2 -->
+        <div class="card-pad card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--gray-100);">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">2</div>
+            <div><div style="font-size:16px;font-weight:700;">蒲甘 Bagan</div><div style="font-size:11px;color:var(--gray-500);">10/03 - 10/05 · 2天</div></div>
+          </div>
+          <div class="day-anchor">📅 Day 4 · 10.04 周五</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">瑞喜宫塔 → 阿南达寺</div><div class="item-sub">蒲甘最古老寺庙 · 蒲甘第一佛塔</div></div></div>
+            <div class="day-item"><div class="item-icon spot">🌅</div><div class="item-text"><div class="item-name">瑞山陀塔 · 达玛扬基寺 · 苏拉玛尼寺</div><div class="item-sub">观日落 · 蒲甘最雄伟佛塔 · 精美壁画</div></div></div>
+            <div class="day-item"><div class="item-icon hotel">🏨</div><div class="item-text"><div class="item-name">奥伦宫酒店</div><div class="item-sub">Aureum Palace Hotel</div></div></div>
+          </div>
+          <div class="day-anchor">📅 Day 5 · 10.05 周六</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">泰乌村 Thale Oo</div><div class="item-sub">小乌本桥 · 水上浮岛菜园</div></div></div>
+            <div class="day-item"><div class="item-icon transport">🚌</div><div class="item-text"><div class="item-name">蒲甘 → 茵莱湖</div><div class="item-sub">长途巴士</div></div></div>
+          </div>
+        </div>
+
+        <!-- Leg 3 -->
+        <div class="card-pad card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--gray-100);">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">3</div>
+            <div><div style="font-size:16px;font-weight:700;">茵莱湖 Inle Lake</div><div style="font-size:11px;color:var(--gray-500);">10/05 - 10/07 · 2天</div></div>
+          </div>
+          <div class="day-anchor">📅 Day 6 · 10.06 周日</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon spot">🛶</div><div class="item-text"><div class="item-name">茵莱湖水上市场</div><div class="item-sub">五日集市 · 渔民菜农山民汇聚</div></div></div>
+            <div class="day-item"><div class="item-icon hotel">🏨</div><div class="item-text"><div class="item-name">阿南塔茵莱度假村</div><div class="item-sub">Ananta Inlay Resort</div></div></div>
+          </div>
+          <div class="day-anchor">📅 Day 7 · 10.07 周一</div>
+          <div class="day-items-list">
+            <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">海霍 → 曼德勒 → 昆明 → 深圳</div><div class="item-sub">3段航班 · K7707 / MU2030 / MU5763</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:280px;flex-shrink:0;">
+        <div class="expense-card">
+          <div class="expense-title">💰 开销总览</div>
+          <div class="expense-bar-row"><span class="expense-bar-label">交通</span><div class="expense-bar"><div class="expense-bar-fill transport" style="width:66.7%"></div></div><span class="expense-bar-val">¥10,478</span></div>
+          <div class="expense-bar-row"><span class="expense-bar-label">住宿</span><div class="expense-bar"><div class="expense-bar-fill hotel" style="width:33.3%"></div></div><span class="expense-bar-val">¥5,238</span></div>
+          <div class="expense-total"><span>合计</span><span>¥15,716</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500);margin-top:4px;"><span>人均 ¥7,858</span><span>日均 ¥2,245</span></div>
+        </div>
+        <div class="expense-card">
+          <div class="expense-title">🏙️ 各站花费</div>
+          <div class="expense-bar-row"><span class="expense-bar-label">曼德勒</span><div class="expense-bar"><div class="expense-bar-fill transport" style="width:30%"></div></div><span class="expense-bar-val">¥4,691</span></div>
+          <div class="expense-bar-row"><span class="expense-bar-label">蒲甘</span><div class="expense-bar"><div class="expense-bar-fill transport" style="width:21%"></div></div><span class="expense-bar-val">¥3,309</span></div>
+          <div class="expense-bar-row"><span class="expense-bar-label">茵莱湖</span><div class="expense-bar"><div class="expense-bar-fill transport" style="width:49%"></div></div><span class="expense-bar-val">¥7,717</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== TIMELINE ===== -->
+<div id="p-timeline" class="page-section">
+<div class="app-shell">
+  <div class="sidebar"><div class="sidebar-logo">S</div><div class="nav-btn"><span class="ico">🏠</span>首页</div><div class="nav-btn"><span class="ico">✈️</span>行程</div><div class="nav-btn active"><span class="ico">📅</span>时间线</div><div class="nav-btn"><span class="ico">📊</span>统计</div></div>
+  <div class="main" style="max-width:760px;">
+    <div class="page-title">旅行<span class="hl">时间线</span></div>
+    <div class="page-sub">12 次旅行的足迹</div>
+
+    <div class="tl-year">2024 <span class="yr-badge">1次旅行</span></div>
+    <div class="tl-track">
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇹🇭 清迈5日休闲游</div><div class="tl-card-route">清迈</div><div class="tl-card-meta"><span>03.15 - 03.19</span><span>5天 · 1人</span><span class="tl-card-cost">¥6,800</span></div></div></div>
+    </div>
+
+    <div class="tl-year">2023 <span class="yr-badge">2次旅行</span></div>
+    <div class="tl-track">
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇮🇹 意大利深度12日</div><div class="tl-card-route">罗马 → 佛罗伦萨 → 威尼斯</div><div class="tl-card-meta"><span>09.10 - 09.21</span><span>12天 · 2人</span><span class="tl-card-cost">¥35,200</span></div></div></div>
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇨🇳 云南8日自驾</div><div class="tl-card-route">昆明 → 大理 → 丽江 → 香格里拉</div><div class="tl-card-meta"><span>04.28 - 05.05</span><span>8天 · 3人</span><span class="tl-card-cost">¥12,500</span></div></div></div>
+    </div>
+
+    <div class="tl-year">2019 <span class="yr-badge">3次旅行</span></div>
+    <div class="tl-track">
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇲🇲 SouL的缅甸行程</div><div class="tl-card-route">曼德勒 → 蒲甘 → 茵莱湖</div><div class="tl-card-meta"><span>10.01 - 10.07</span><span>7天 · 2人</span><span class="tl-card-cost">¥15,716</span></div></div></div>
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇯🇵 日本关西10日</div><div class="tl-card-route">大阪 → 京都 → 奈良</div><div class="tl-card-meta"><span>05.01 - 05.10</span><span>10天 · 2人</span><span class="tl-card-cost">¥22,340</span></div></div></div>
+      <div class="tl-node"><div class="tl-card"><div class="tl-card-title">🇰🇷 首尔4日购物游</div><div class="tl-card-route">首尔</div><div class="tl-card-meta"><span>02.08 - 02.11</span><span>4天 · 2人</span><span class="tl-card-cost">¥8,200</span></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== STATS ===== -->
+<div id="p-stats" class="page-section">
+<div class="app-shell">
+  <div class="sidebar"><div class="sidebar-logo">S</div><div class="nav-btn"><span class="ico">🏠</span>首页</div><div class="nav-btn"><span class="ico">✈️</span>行程</div><div class="nav-btn"><span class="ico">📅</span>时间线</div><div class="nav-btn active"><span class="ico">📊</span>统计</div></div>
+  <div class="main">
+    <div class="page-title">生涯<span class="hl">统计</span></div>
+    <div class="page-sub">你的旅行数据全览</div>
+
+    <div class="stats-overview">
+      <div class="stats-num"><div class="n">12</div><div class="l">旅行次数</div></div>
+      <div class="stats-num"><div class="n">86</div><div class="l">总天数</div></div>
+      <div class="stats-num"><div class="n">8</div><div class="l">国家</div></div>
+      <div class="stats-num"><div class="n">23</div><div class="l">城市</div></div>
+      <div class="stats-num"><div class="n" style="font-size:18px;">¥128K</div><div class="l">总花费</div></div>
+      <div class="stats-num"><div class="n" style="font-size:18px;">¥10.7K</div><div class="l">次均花费</div></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card-title">🌍 国家访问排名</div>
+        <div class="rank-item"><span class="rank-n">1</span><span class="rank-name">日本</span><div class="rank-bar"><div class="rank-fill" style="width:100%"></div></div><span class="rank-cnt">3次</span></div>
+        <div class="rank-item"><span class="rank-n">2</span><span class="rank-name">泰国</span><div class="rank-bar"><div class="rank-fill" style="width:66%"></div></div><span class="rank-cnt">2次</span></div>
+        <div class="rank-item"><span class="rank-n">3</span><span class="rank-name">缅甸</span><div class="rank-bar"><div class="rank-fill" style="width:33%"></div></div><span class="rank-cnt">1次</span></div>
+        <div class="rank-item"><span class="rank-n">4</span><span class="rank-name">越南</span><div class="rank-bar"><div class="rank-fill" style="width:33%"></div></div><span class="rank-cnt">1次</span></div>
+        <div class="rank-item"><span class="rank-n">5</span><span class="rank-name">意大利</span><div class="rank-bar"><div class="rank-fill" style="width:33%"></div></div><span class="rank-cnt">1次</span></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">💰 开销类别占比</div>
+        <div class="pie-wrap">
+          <div class="pie-circle" style="background:conic-gradient(var(--blue) 0% 42%, var(--purple) 42% 72%, var(--orange) 72% 86%, var(--green) 86% 94%, var(--pink) 94% 100%);"></div>
+          <div>
+            <div class="pie-legend-item"><span class="pie-dot" style="background:var(--blue)"></span>交通 42%</div>
+            <div class="pie-legend-item"><span class="pie-dot" style="background:var(--purple)"></span>住宿 30%</div>
+            <div class="pie-legend-item"><span class="pie-dot" style="background:var(--orange)"></span>餐饮 14%</div>
+            <div class="pie-legend-item"><span class="pie-dot" style="background:var(--green)"></span>门票 8%</div>
+            <div class="pie-legend-item"><span class="pie-dot" style="background:var(--pink)"></span>其他 6%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card-title">📊 各旅行花费对比</div>
+        <div class="bar-chart">
+          <div class="bar-col"><div class="bar-val">¥8.2K</div><div class="bar-rect" style="height:46px;"></div><div class="bar-lbl">首尔</div></div>
+          <div class="bar-col"><div class="bar-val">¥22.3K</div><div class="bar-rect" style="height:126px;"></div><div class="bar-lbl">日本</div></div>
+          <div class="bar-col"><div class="bar-val">¥15.7K</div><div class="bar-rect" style="height:89px;"></div><div class="bar-lbl">缅甸</div></div>
+          <div class="bar-col"><div class="bar-val">¥12.5K</div><div class="bar-rect" style="height:71px;"></div><div class="bar-lbl">云南</div></div>
+          <div class="bar-col"><div class="bar-val">¥35.2K</div><div class="bar-rect" style="height:160px;"></div><div class="bar-lbl">意大利</div></div>
+          <div class="bar-col"><div class="bar-val">¥6.8K</div><div class="bar-rect" style="height:39px;"></div><div class="bar-lbl">清迈</div></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">📈 人均日消费趋势</div>
+        <svg viewBox="0 0 400 180" style="width:100%;height:180px;">
+          <line x1="40" y1="155" x2="380" y2="155" stroke="#f0f2f5" stroke-width="1"/>
+          <line x1="40" y1="115" x2="380" y2="115" stroke="#f0f2f5" stroke-width="1"/>
+          <line x1="40" y1="75" x2="380" y2="75" stroke="#f0f2f5" stroke-width="1"/>
+          <line x1="40" y1="35" x2="380" y2="35" stroke="#f0f2f5" stroke-width="1"/>
+          <text x="8" y="158" font-size="9" fill="#8e99a4">¥0</text>
+          <text x="8" y="118" font-size="9" fill="#8e99a4">¥500</text>
+          <text x="8" y="78" font-size="9" fill="#8e99a4">¥1K</text>
+          <text x="8" y="38" font-size="9" fill="#8e99a4">¥1.5K</text>
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0099ff" stop-opacity="0.15"/><stop offset="100%" stop-color="#0099ff" stop-opacity="0"/></linearGradient></defs>
+          <polygon points="65,87 120,99 175,67 230,91 290,25 350,105 350,155 65,155" fill="url(#lg)"/>
+          <polyline points="65,87 120,99 175,67 230,91 290,25 350,105" fill="none" stroke="#0099ff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="65" cy="87" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <circle cx="120" cy="99" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <circle cx="175" cy="67" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <circle cx="230" cy="91" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <circle cx="290" cy="25" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <circle cx="350" cy="105" r="4" fill="#fff" stroke="#0099ff" stroke-width="2.5"/>
+          <text x="55" y="168" font-size="9" fill="#8e99a4">首尔</text>
+          <text x="110" y="168" font-size="9" fill="#8e99a4">日本</text>
+          <text x="165" y="168" font-size="9" fill="#8e99a4">缅甸</text>
+          <text x="220" y="168" font-size="9" fill="#8e99a4">云南</text>
+          <text x="277" y="168" font-size="9" fill="#8e99a4">意大利</text>
+          <text x="340" y="168" font-size="9" fill="#8e99a4">清迈</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== SHARE ===== -->
+<div id="p-share" class="page-section">
+<div class="share-wrap" style="padding-top:80px;">
+  <div class="share-brand">
+    <div class="share-logo"><div class="dot">S</div> Soul's Travel</div>
+    <div class="share-h1">🇲🇲 SouL的缅甸行程</div>
+    <div class="share-chips">
+      <div class="chip chip-blue">📅 2019.10.01 - 10.07</div>
+      <div class="chip chip-green">7天</div>
+      <div class="chip chip-orange">曼德勒 → 蒲甘 → 茵莱湖</div>
+    </div>
+  </div>
+
+  <div class="card-pad card" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div><div style="font-weight:700;">曼德勒 Mandalay</div><div style="font-size:11px;color:var(--gray-500);">3天</div></div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 1 · 10.01</div>
+    <div class="day-items-list" style="margin-bottom:16px;">
+      <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">广州→曼谷→曼德勒</div><div class="item-sub">FD531 + FD244</div></div></div>
+      <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">固都陶佛塔 · 曼德勒山</div><div class="item-sub">世界最大的书 · 全城日落</div></div></div>
+    </div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 2 · 10.02</div>
+    <div class="day-items-list" style="margin-bottom:16px;">
+      <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">敏贡 · 实皆 · 因瓦 · 阿玛拉普拉四大古城</div><div class="item-sub">乌本桥日落收官</div></div></div>
+    </div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 3 · 10.03</div>
+    <div class="day-items-list">
+      <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">马哈根达杨僧院 — 千人僧饭</div></div></div>
+      <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">曼德勒 → 蒲甘</div><div class="item-sub">7Y241</div></div></div>
+    </div>
+  </div>
+
+  <div class="card-pad card" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div><div style="font-weight:700;">蒲甘 Bagan</div><div style="font-size:11px;color:var(--gray-500);">2天</div></div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 4 · 10.04</div>
+    <div class="day-items-list" style="margin-bottom:16px;">
+      <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">瑞喜宫塔 · 阿南达寺 · 瑞山陀塔 · 达玛扬基寺</div><div class="item-sub">佛塔巡礼 · 蒲甘日落</div></div></div>
+    </div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 5 · 10.05</div>
+    <div class="day-items-list">
+      <div class="day-item"><div class="item-icon spot">🏛</div><div class="item-text"><div class="item-name">泰乌村 · 前往茵莱湖</div></div></div>
+    </div>
+  </div>
+
+  <div class="card-pad card" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;"><div style="width:28px;height:28px;border-radius:8px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">3</div><div style="font-weight:700;">茵莱湖 Inle Lake</div><div style="font-size:11px;color:var(--gray-500);">2天</div></div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 6 · 10.06</div>
+    <div class="day-items-list" style="margin-bottom:16px;">
+      <div class="day-item"><div class="item-icon spot">🛶</div><div class="item-text"><div class="item-name">茵莱湖水上市场</div><div class="item-sub">五日集市</div></div></div>
+    </div>
+    <div class="day-anchor" style="font-size:12px;padding:4px 12px;">Day 7 · 10.07</div>
+    <div class="day-items-list">
+      <div class="day-item"><div class="item-icon transport">✈️</div><div class="item-text"><div class="item-name">茵莱湖 → 曼德勒 → 昆明 → 深圳</div><div class="item-sub">3段航班返程</div></div></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:32px 0;border-top:1px solid var(--gray-200);margin-top:16px;">
+    <div class="share-logo" style="justify-content:center;margin-bottom:8px;"><div class="dot">S</div> Soul's Travel</div>
+    <div style="font-size:12px;color:var(--gray-500);">记录旅行，让回忆有迹可循</div>
+  </div>
+</div>
+</div>
+
+<script>
+function go(name){
+  document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('p-'+name).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

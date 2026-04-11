@@ -22,6 +22,11 @@ export const shareApi = {
   get: (token) => api.get(`/share/${token}`).then(r => r.data),
 }
 
+export const evaluationApi = {
+  get: (tripId) => api.get(`/trips/${tripId}/evaluation`).then(r => r.data),
+  regenerate: (tripId) => api.post(`/trips/${tripId}/evaluation`).then(r => r.data),
+}
+
 export const parseApi = {
   text: (text) => api.post('/parse', { text }).then(r => r.data),
   file: (file) => {

@@ -1,11 +1,62 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Input, DatePicker, InputNumber, Button, Collapse } from 'antd'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import { Input, DatePicker, InputNumber, Button, Collapse, Tag } from 'antd'
 import dayjs from 'dayjs'
 import './TripForm.css'
+
+const NAV_ITEMS = [
+  { id: 'basic', label: '基本信息', icon: '📋' },
+  { id: 'legs', label: '城市站点', icon: '🏙️' },
+  { id: 'expenses', label: '费用明细', icon: '💰' },
+]
+
+function ActivityTags({ items }) {
+  if (!items || items.length === 0) return <span className="f-empty">—</span>
+  return (
+    <div className="transport-tags">
+      {items.map((item, i) => (
+        <Tag key={i} color="cyan" className="transport-tag">{item}</Tag>
+      ))}
+    </div>
+  )
+}
+
+function TransportTags({ items }) {
+  if (!items || items.length === 0) return <span className="f-empty">—</span>
+  return (
+    <div className="transport-tags">
+      {items.map((item, i) => {
+        const colonIdx = item.indexOf(':')
+        if (colonIdx > 0 && !/^\d/.test(item)) {
+          // Pre-paired "FD531:广州→曼谷"
+          const code = item.slice(0, colonIdx)
+          const route = item.slice(colonIdx + 1).replace('→', '-')
+          return <Tag key={i} color="volcano" className="transport-tag">✈ {code}:{route}</Tag>
+        }
+        // Route only "曼德勒→蒲甘"
+        return <Tag key={i} color="orange" className="transport-tag">{item.replace('→', '-')}</Tag>
+      })}
+    </div>
+  )
+}
+
+function HotelTag({ name }) {
+  if (!name) return <span className="f-empty">—</span>
+  return (
+    <div className="transport-tags">
+      <Tag color="purple" className="transport-tag">🏨 {name}</Tag>
+    </div>
+  )
+}
 
 export default function TripForm({ data, onSave }) {
   const [form, setForm] = useState({ title: '', start_date: '', end_date: '', traveler_count: 1, description: '', legs: [], expenses: [] })
   const [dirty, setDirty] = useState(new Set())
+  const [activeSection, setActiveSection] = useState('basic')
+
+  const basicRef = useRef(null)
+  const legsRef = useRef(null)
+  const expensesRef = useRef(null)
+  const sectionRefs = { basic: basicRef, legs: legsRef, expenses: expensesRef }
 
   useEffect(() => {
     if (data) {
@@ -21,13 +72,41 @@ export default function TripForm({ data, onSave }) {
     }
   }, [data])
 
+  useEffect(() => {
+    const container = basicRef.current?.closest('.editor-form')
+    if (!container) return
+    const handleScroll = () => {
+      const containerTop = container.getBoundingClientRect().top
+      let active = 'basic'
+      for (const { id } of NAV_ITEMS) {
+        const ref = sectionRefs[id]
+        if (ref.current) {
+          const rect = ref.current.getBoundingClientRect()
+          if (rect.top - containerTop <= 72) active = id
+        }
+      }
+      setActiveSection(active)
+    }
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToSection = (id) => {
+    const container = basicRef.current?.closest('.editor-form')
+    const ref = sectionRefs[id]
+    if (!container || !ref.current) return
+    const containerTop = container.getBoundingClientRect().top
+    const sectionTop = ref.current.getBoundingClientRect().top
+    container.scrollTo({ top: sectionTop - containerTop + container.scrollTop - 60, behavior: 'smooth' })
+  }
+
   const setField = useCallback((key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
     setDirty(prev => new Set(prev).add(key))
   }, [])
 
   const handleSave = () => {
-    const payload = {
+    onSave({
       title: form.title,
       start_date: form.start_date,
       end_date: form.end_date,
@@ -36,8 +115,7 @@ export default function TripForm({ data, onSave }) {
       status: 'completed',
       legs: form.legs,
       expenses: form.expenses,
-    }
-    onSave(payload)
+    })
   }
 
   const legItems = (form.legs || []).map((leg, li) => ({
@@ -51,19 +129,19 @@ export default function TripForm({ data, onSave }) {
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">活动</label>
-                <Input value={(day.activities || []).join(', ')} readOnly className="f-input ai-fill" />
+                <ActivityTags items={day.activities} />
               </div>
             </div>
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">交通</label>
-                <Input value={(day.transport || []).join(', ')} readOnly className="f-input ai-fill" />
+                <TransportTags items={day.transport} />
               </div>
             </div>
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">住宿</label>
-                <Input value={day.accommodation || ''} readOnly className="f-input ai-fill" />
+                <HotelTag name={day.accommodation} />
               </div>
             </div>
           </div>
@@ -74,12 +152,25 @@ export default function TripForm({ data, onSave }) {
 
   return (
     <div className="trip-form">
-      <div className="form-header">
-        <h3>行程表单</h3>
+      <div className="form-topbar">
+        <nav className="form-nav">
+          {NAV_ITEMS.map(({ id, label, icon }, idx) => (
+            <Fragment key={id}>
+              <button
+                className={`form-nav-item${activeSection === id ? ' active' : ''}`}
+                onClick={() => scrollToSection(id)}
+              >
+                <span className="form-nav-dot" />
+                <span className="form-nav-label">{icon} {label}</span>
+              </button>
+              {idx < NAV_ITEMS.length - 1 && <div className="form-nav-connector" />}
+            </Fragment>
+          ))}
+        </nav>
         <Button type="primary" shape="round" onClick={handleSave}>💾 保存行程</Button>
       </div>
 
-      <div className="form-block">
+      <div ref={basicRef} className="form-block">
         <h4>📋 基本信息</h4>
         <div className="f-row">
           <div className="f-group">
@@ -106,9 +197,36 @@ export default function TripForm({ data, onSave }) {
       </div>
 
       {legItems.length > 0 && (
-        <div className="form-block">
+        <div ref={legsRef} className="form-block">
           <h4>🏙️ 城市站点</h4>
           <Collapse items={legItems} defaultActiveKey={[0]} />
+        </div>
+      )}
+
+      {(form.expenses || []).length > 0 && (
+        <div ref={expensesRef} className="form-block">
+          <h4>💰 费用明细</h4>
+          <div className="expense-table">
+            <div className="expense-header">
+              <span>类别</span>
+              <span>描述</span>
+              <span>金额</span>
+            </div>
+            {(form.expenses || []).map((exp, i) => (
+              <div key={i} className="expense-row">
+                <span className={`expense-tag tag-${exp.category === '交通' ? 'blue' : exp.category === '住宿' ? 'green' : exp.category === '餐饮' ? 'orange' : 'gray'}`}>
+                  {exp.category}
+                </span>
+                <span className="expense-desc">{exp.description}</span>
+                <span className="expense-amount">¥{exp.amount.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+              </div>
+            ))}
+            <div className="expense-total">
+              <span>合计</span>
+              <span></span>
+              <span>¥{(form.expenses || []).reduce((s, e) => s + e.amount, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

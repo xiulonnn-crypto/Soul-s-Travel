@@ -1,11 +1,90 @@
-.trip-form { padding: 4px; }
-.form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.form-header h3 { font-size: 17px; font-weight: 700; }
+.trip-form { padding: 0; }
+
+/* ── Sticky top bar ── */
+.form-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f7fa;
+  padding: 14px 4px 12px;
+  margin-bottom: 4px;
+}
+
+/* ── Progress nav ── */
+.form-nav { display: flex; align-items: center; gap: 0; }
+
+.form-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  min-width: 88px;
+}
+.form-nav-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #c8cfd8;
+  background: #fff;
+  transition: all 0.2s;
+}
+.form-nav-item.active .form-nav-dot {
+  background: #0099ff;
+  border-color: #0099ff;
+  box-shadow: 0 0 0 3px rgba(0,153,255,0.15);
+}
+.form-nav-label {
+  font-size: 12px;
+  color: #9aa5b4;
+  font-weight: 500;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+.form-nav-item.active .form-nav-label { color: #0099ff; font-weight: 600; }
+.form-nav-item:hover .form-nav-dot { border-color: #0099ff; }
+.form-nav-item:hover .form-nav-label { color: #0099ff; }
+
+.form-nav-connector {
+  flex: 1;
+  height: 2px;
+  min-width: 24px;
+  background: #e2e6ec;
+  margin-bottom: 17px; /* align with dots */
+}
+
+/* ── Form blocks ── */
 .form-block { background: #fff; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .form-block h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
 .f-row { display: flex; gap: 12px; margin-bottom: 10px; }
 .f-group { flex: 1; }
 .f-label { font-size: 11px; color: #8e99a4; margin-bottom: 3px; display: block; }
 .f-input.ai-fill { background: #f0f9ff; border-color: #b3deff; }
+.f-empty { font-size: 13px; color: #c0c8d0; }
 .day-form-block { background: #e8f4ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
 .day-form-label { font-size: 12px; font-weight: 600; color: #0099ff; margin-bottom: 8px; }
+
+/* ── Transport tags ── */
+.transport-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
+.transport-tag { font-size: 12px; margin: 0; }
+
+/* ── Expense table ── */
+.expense-table { border-radius: 10px; overflow: hidden; border: 1px solid #e5e8ed; }
+.expense-header { display: grid; grid-template-columns: 52px 1fr 90px; padding: 8px 12px; background: #f5f7fa; font-size: 11px; color: #8e99a4; font-weight: 600; }
+.expense-row { display: grid; grid-template-columns: 52px 1fr 90px; padding: 9px 12px; border-top: 1px solid #f0f2f5; font-size: 13px; align-items: center; }
+.expense-row:hover { background: #fafbfc; }
+.expense-tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.expense-tag.tag-blue { background: #e8f4ff; color: #0099ff; }
+.expense-tag.tag-green { background: #eafaf0; color: #34c759; }
+.expense-tag.tag-orange { background: #fff5e6; color: #ff9500; }
+.expense-tag.tag-gray { background: #f0f2f5; color: #8e99a4; }
+.expense-desc { color: #4a5568; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expense-amount { text-align: right; font-weight: 600; color: #1a1a2e; font-variant-numeric: tabular-nums; }
+.expense-total { display: grid; grid-template-columns: 52px 1fr 90px; padding: 10px 12px; border-top: 2px solid #e5e8ed; font-size: 13px; font-weight: 700; background: #f5f7fa; }
+.expense-total span:last-child { text-align: right; color: #0099ff; }

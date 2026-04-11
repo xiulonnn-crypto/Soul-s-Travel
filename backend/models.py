@@ -137,3 +137,26 @@ class Expense(Base):
             "description": self.description,
             "date": self.date.isoformat(),
         }
+
+
+class TripEvaluation(Base):
+    __tablename__ = "trip_evaluations"
+
+    id = Column(Integer, primary_key=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False, unique=True)
+    overall_score = Column(Integer, nullable=False)
+    evaluation_data = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    trip = relationship("Trip")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "trip_id": self.trip_id,
+            "overall_score": self.overall_score,
+            "evaluation_data": json.loads(self.evaluation_data) if self.evaluation_data else {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }

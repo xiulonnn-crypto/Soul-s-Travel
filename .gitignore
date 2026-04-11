@@ -1,3 +1,5 @@
 backend/travel.db
 frontend/node_modules/
 __pycache__/
+.env
+*.env

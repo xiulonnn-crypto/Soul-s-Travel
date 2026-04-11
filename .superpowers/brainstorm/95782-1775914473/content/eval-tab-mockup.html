@@ -1,0 +1,168 @@
+<h2>行程评价 TAB · 仪表盘布局方案</h2>
+<p class="subtitle">以下是评价 TAB 在行程详情页中的完整 UI 结构预览</p>
+
+<div class="mockup">
+  <div class="mockup-header">行程详情页 · 行程评价 TAB</div>
+  <div class="mockup-body" style="padding:0;background:#f5f7fa;">
+
+    <!-- Tab Bar -->
+    <div style="background:#fff;padding:0 20px;border-bottom:1px solid #f0f2f5;display:flex;gap:0;">
+      <div style="padding:14px 16px;font-size:14px;color:#8e99a4;font-weight:600;cursor:pointer;">行程</div>
+      <div style="padding:14px 16px;font-size:14px;color:#8e99a4;font-weight:600;cursor:pointer;">开销明细</div>
+      <div style="padding:14px 16px;font-size:14px;color:#0099ff;font-weight:600;border-bottom:2px solid #0099ff;">行程评价</div>
+    </div>
+
+    <div style="padding:20px;">
+
+      <!-- 顶部: 综合评分区 -->
+      <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:16px;display:flex;align-items:center;gap:24px;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="width:88px;height:88px;border-radius:50%;background:conic-gradient(#0099ff 87%, #eef2f7 0);display:flex;align-items:center;justify-content:center;">
+            <div style="width:72px;height:72px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+              <div style="font-size:28px;font-weight:800;color:#1a1a2e;line-height:1;">87</div>
+              <div style="font-size:10px;color:#8e99a4;">/100</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:2px;margin-top:6px;">
+            <span style="font-size:14px;">⭐⭐⭐⭐</span><span style="font-size:14px;opacity:0.25;">⭐</span>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">性价比出色的东南亚之旅</div>
+          <div style="font-size:13px;color:#8e99a4;line-height:1.5;">整体花费控制优秀，景点覆盖全面。部分天数行程偏紧，建议适当增加自由时间。</div>
+        </div>
+        <div style="flex-shrink:0;">
+          <button style="background:#f5f7fa;border:1px solid #e5e8ed;border-radius:20px;padding:8px 16px;font-size:12px;color:#555;cursor:pointer;display:flex;align-items:center;gap:4px;">🔄 重新生成</button>
+        </div>
+      </div>
+
+      <!-- 中部: 维度评分网格 -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+        <!-- 花费 -->
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;">💰 花费性价比</span>
+            <span style="font-size:20px;font-weight:800;color:#34c759;">92</span>
+          </div>
+          <div style="background:#eef2f7;height:6px;border-radius:3px;margin-bottom:8px;">
+            <div style="background:#34c759;height:6px;border-radius:3px;width:92%;"></div>
+          </div>
+          <div style="font-size:11px;color:#8e99a4;">人均 ¥680/天 · 低于均价 15%</div>
+        </div>
+        <!-- 节奏 -->
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;">🏃 行程节奏</span>
+            <span style="font-size:20px;font-weight:800;color:#ff9500;">75</span>
+          </div>
+          <div style="background:#eef2f7;height:6px;border-radius:3px;margin-bottom:8px;">
+            <div style="background:#ff9500;height:6px;border-radius:3px;width:75%;"></div>
+          </div>
+          <div style="font-size:11px;color:#8e99a4;">日均 3.2 景点 · Day3 偏紧</div>
+        </div>
+        <!-- 住宿 -->
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;">🏨 住宿品质</span>
+            <span style="font-size:20px;font-weight:800;color:#0099ff;">85</span>
+          </div>
+          <div style="background:#eef2f7;height:6px;border-radius:3px;margin-bottom:8px;">
+            <div style="background:#0099ff;height:6px;border-radius:3px;width:85%;"></div>
+          </div>
+          <div style="font-size:11px;color:#8e99a4;">位置便利 · 价格合理</div>
+        </div>
+        <!-- 交通 -->
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;">✈️ 交通规划</span>
+            <span style="font-size:20px;font-weight:800;color:#0099ff;">80</span>
+          </div>
+          <div style="background:#eef2f7;height:6px;border-radius:3px;margin-bottom:8px;">
+            <div style="background:#0099ff;height:6px;border-radius:3px;width:80%;"></div>
+          </div>
+          <div style="font-size:11px;color:#8e99a4;">路线基本合理 · 无回头路</div>
+        </div>
+        <!-- 景点 -->
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;font-weight:600;">🎯 景点覆盖</span>
+            <span style="font-size:20px;font-weight:800;color:#0099ff;">88</span>
+          </div>
+          <div style="background:#eef2f7;height:6px;border-radius:3px;margin-bottom:8px;">
+            <div style="background:#0099ff;height:6px;border-radius:3px;width:88%;"></div>
+          </div>
+          <div style="font-size:11px;color:#8e99a4;">覆盖 88% 必去景点</div>
+        </div>
+      </div>
+
+      <!-- 下部: 城市评价卡片 -->
+      <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;margin-bottom:16px;">🏙️ 城市评价</div>
+
+        <!-- 曼谷 -->
+        <div style="border:1px solid #f0f2f5;border-radius:12px;padding:16px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:8px;background:#0099ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">1</div>
+              <span style="font-size:14px;font-weight:700;">曼谷</span>
+              <span style="font-size:11px;color:#8e99a4;">3天 · 泰国</span>
+            </div>
+            <div style="background:#0099ff;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">90</div>
+          </div>
+          <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px;">
+            曼谷部分整体表现优秀。人均花费 ¥450/天，显著低于市场均价。大皇宫、卧佛寺、郑王庙等必去景点已全面覆盖。住宿选择位置便利，交通以 BTS 为主效率较高。
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="background:#dcfce7;color:#16a34a;font-size:11px;padding:3px 10px;border-radius:20px;">✓ 花费优秀</span>
+            <span style="background:#dcfce7;color:#16a34a;font-size:11px;padding:3px 10px;border-radius:20px;">✓ 景点全面</span>
+            <span style="background:#fef9c3;color:#ca8a04;font-size:11px;padding:3px 10px;border-radius:20px;">⚠ Day3 偏紧凑</span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#8e99a4;">📍 遗漏景点: 考山路、水上市场</div>
+        </div>
+
+        <!-- 清迈 -->
+        <div style="border:1px solid #f0f2f5;border-radius:12px;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:8px;background:#0099ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">2</div>
+              <span style="font-size:14px;font-weight:700;">清迈</span>
+              <span style="font-size:11px;color:#8e99a4;">2天 · 泰国</span>
+            </div>
+            <div style="background:#ff9500;color:#fff;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">82</div>
+          </div>
+          <div style="font-size:12px;color:#555;line-height:1.6;margin-bottom:8px;">
+            清迈停留时间略短，仅覆盖了素贴山和古城两个核心区域。建议增加至少半天体验清迈夜市文化。住宿性价比不错。
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span style="background:#dcfce7;color:#16a34a;font-size:11px;padding:3px 10px;border-radius:20px;">✓ 住宿性价比高</span>
+            <span style="background:#fef3cd;color:#ca8a04;font-size:11px;padding:3px 10px;border-radius:20px;">⚠ 停留偏短</span>
+            <span style="background:#fef3cd;color:#ca8a04;font-size:11px;padding:3px 10px;border-radius:20px;">⚠ 景点覆盖不足</span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#8e99a4;">📍 遗漏景点: 周日夜市、大象保护区</div>
+        </div>
+      </div>
+
+      <!-- 底部: 后续建议 -->
+      <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+        <div style="font-size:15px;font-weight:700;margin-bottom:14px;">💡 后续行程建议</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:#f0f7ff;border-radius:10px;padding:12px 16px;border-left:3px solid #0099ff;">
+            <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;">🏖️ 推荐: 芭提雅一日游</div>
+            <div style="font-size:12px;color:#555;">距离曼谷仅 2 小时车程，可安排海滩 + 水上活动，是曼谷行程的理想延伸。</div>
+          </div>
+          <div style="background:#f0f7ff;border-radius:10px;padding:12px 16px;border-left:3px solid #0099ff;">
+            <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;">⏰ 优化: 清迈多留 1 天</div>
+            <div style="font-size:12px;color:#555;">下次建议在清迈多停留 1 天，体验周日夜市和大象自然保护区。</div>
+          </div>
+          <div style="background:#f0f7ff;border-radius:10px;padding:12px 16px;border-left:3px solid #0099ff;">
+            <div style="font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:2px;">🌏 下一站: 越南岘港</div>
+            <div style="font-size:12px;color:#555;">基于你对东南亚的偏好，岘港是高性价比的下一站选择，人均日花费约 ¥400。</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:24px;">请在浏览器中查看完整效果。如有调整意见请在终端告诉我。</p>

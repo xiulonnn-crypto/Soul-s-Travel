@@ -1,0 +1,4 @@
+{"type":"server-started","port":64504,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:64504","screen_dir":"/Users/soul/Documents/Cursor/soul's travel/.superpowers/brainstorm/95782-1775914473/content","state_dir":"/Users/soul/Documents/Cursor/soul's travel/.superpowers/brainstorm/95782-1775914473/state"}
+{"type":"screen-added","file":"/Users/soul/Documents/Cursor/soul's travel/.superpowers/brainstorm/95782-1775914473/content/eval-tab-mockup.html"}
+{"type":"screen-updated","file":"/Users/soul/Documents/Cursor/soul's travel/.superpowers/brainstorm/95782-1775914473/content/eval-tab-mockup.html"}
+{"type":"server-stopped","reason":"idle timeout"}
