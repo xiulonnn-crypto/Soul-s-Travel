@@ -1,0 +1,54 @@
+.profile-drawer .ant-drawer-body {
+  padding: 20px 24px;
+}
+
+.profile-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.profile-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 14px;
+}
+
+.profile-empty {
+  color: #8e99a4;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.profile-visited {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.visited-country-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 8px;
+}
+
+.visited-cities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.visited-tag {
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 2px 10px;
+  background: #f0f5ff;
+  border-color: #d6e4ff;
+  color: #4a5568;
+}
+
+.profile-drawer .ant-drawer-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f0f0;
+}
