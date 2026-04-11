@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Button, Spin, message } from 'antd'
+import { Button, Spin, Select, Popover, message } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
-import { evaluationApi } from '../services/api'
+import { evaluationApi, tripDayApi } from '../services/api'
 import './TripEvaluation.css'
 
 const DIM_META = {
@@ -58,7 +58,31 @@ function DimensionCard({ dimKey, dim }) {
   )
 }
 
-function CityCard({ city, index }) {
+function CityCard({ city, index, legs }) {
+  const [missedSpots, setMissedSpots] = useState(city.missed_spots || [])
+  const [openSpot, setOpenSpot] = useState(null)
+  const [selectedDayId, setSelectedDayId] = useState(null)
+  const [adding, setAdding] = useState(false)
+
+  const leg = legs?.find(l => l.city === city.city)
+  const days = leg?.days || []
+
+  const handleAdd = async (spot) => {
+    if (!selectedDayId) return
+    setAdding(true)
+    try {
+      await tripDayApi.addActivity(selectedDayId, spot)
+      setMissedSpots(prev => prev.filter(s => s !== spot))
+      setOpenSpot(null)
+      setSelectedDayId(null)
+      message.success(`已将「${spot}」添加到行程`)
+    } catch {
+      message.error('添加失败')
+    } finally {
+      setAdding(false)
+    }
+  }
+
   const scoreBg = city.score >= 85 ? '#0099ff' : city.score >= 70 ? '#ff9500' : '#ff3b30'
   return (
     <div className="eval-city-card">
@@ -78,14 +102,41 @@ function CityCard({ city, index }) {
           ))}
         </div>
       )}
-      {city.missed_spots && city.missed_spots.length > 0 && (
-        <div className="city-missed">📍 遗漏景点: {city.missed_spots.join('、')}</div>
+      {missedSpots.length > 0 && (
+        <div className="city-missed">
+          <span>📍 遗漏景点: </span>
+          {missedSpots.map(spot => (
+            <Popover
+              key={spot}
+              trigger="click"
+              open={openSpot === spot}
+              onOpenChange={open => { setOpenSpot(open ? spot : null); if (!open) setSelectedDayId(null) }}
+              content={
+                <div style={{ width: 220 }}>
+                  <div style={{ marginBottom: 8, fontSize: 13 }}>确认已去过「{spot}」？</div>
+                  <Select
+                    placeholder="选择添加到哪一天"
+                    style={{ width: '100%', marginBottom: 8 }}
+                    value={selectedDayId}
+                    onChange={setSelectedDayId}
+                    options={days.map(d => ({ label: `Day ${d.day_number} · ${d.date}`, value: d.id }))}
+                  />
+                  <Button type="primary" size="small" block loading={adding} disabled={!selectedDayId} onClick={() => handleAdd(spot)}>
+                    确认添加
+                  </Button>
+                </div>
+              }
+            >
+              <span className="missed-spot-tag">{spot}</span>
+            </Popover>
+          ))}
+        </div>
       )}
     </div>
   )
 }
 
-export default function TripEvaluation({ tripId }) {
+export default function TripEvaluation({ tripId, trip }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [regenerating, setRegenerating] = useState(false)
@@ -151,7 +202,7 @@ export default function TripEvaluation({ tripId }) {
         <div className="eval-cities card">
           <h3 className="eval-section-title">🏙️ 城市评价</h3>
           {ev.cities.map((city, i) => (
-            <CityCard key={i} city={city} index={i} />
+            <CityCard key={i} city={city} index={i} legs={trip?.legs} />
           ))}
         </div>
       )}

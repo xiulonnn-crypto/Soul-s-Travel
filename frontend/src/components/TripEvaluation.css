@@ -46,7 +46,9 @@
 .city-meta { font-size: 11px; color: #8e99a4; }
 .city-score-pill { color: #fff; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
 .city-card-text { font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 8px; }
-.city-missed { margin-top: 8px; font-size: 11px; color: #8e99a4; }
+.city-missed { margin-top: 8px; font-size: 11px; color: #8e99a4; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.missed-spot-tag { display: inline-block; background: #f0f2f5; color: #555; padding: 2px 10px; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+.missed-spot-tag:hover { background: #e0e4ea; color: #333; }
 
 /* 后续建议 */
 .eval-suggestion-item { background: #f0f7ff; border-radius: 10px; padding: 12px 16px; border-left: 3px solid #0099ff; margin-bottom: 10px; font-size: 13px; color: #333; line-height: 1.5; }

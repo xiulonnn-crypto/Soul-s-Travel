@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Button, Tag, message, Tabs } from 'antd'
-import { EditOutlined, ShareAltOutlined } from '@ant-design/icons'
+import { Button, Tag, message, Tabs, Modal } from 'antd'
+import { EditOutlined, ShareAltOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { tripApi } from '../services/api'
 import ExpenseTable from '../components/ExpenseTable'
 import TripEvaluation from '../components/TripEvaluation'
@@ -80,6 +80,22 @@ export default function TripDetail() {
     message.success(`分享链接: ${window.location.origin}/share/${share_token}`)
   }
 
+  const handleDelete = () => {
+    Modal.confirm({
+      title: '确认删除',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除行程「${trip.title}」吗？删除后将不再显示。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        await tripApi.delete(trip.id)
+        message.success('行程已删除')
+        navigate('/')
+      },
+    })
+  }
+
   const itineraryTab = (
     <div className="detail-itinerary">
       {trip.legs && trip.legs.map((leg, i) => (
@@ -107,7 +123,7 @@ export default function TripDetail() {
     {
       key: 'evaluation',
       label: '行程评价',
-      children: <TripEvaluation tripId={trip.id} />
+      children: <TripEvaluation tripId={trip.id} trip={trip} />
     },
   ]
 
@@ -124,6 +140,7 @@ export default function TripDetail() {
           <Button type="primary" shape="round" icon={<EditOutlined />}
                   onClick={() => navigate(`/trips/${trip.id}/edit`)}>编辑</Button>
           <Button shape="round" icon={<ShareAltOutlined />} onClick={handleShare}>分享</Button>
+          <Button shape="round" danger icon={<DeleteOutlined />} onClick={handleDelete}>删除</Button>
         </div>
       </div>
 
