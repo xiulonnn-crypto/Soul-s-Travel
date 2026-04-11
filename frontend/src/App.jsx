@@ -4,11 +4,9 @@ import Home from './pages/Home'
 import TripList from './pages/TripList'
 import TripDetail from './pages/TripDetail'
 import TripEditor from './pages/TripEditor'
+import Timeline from './pages/Timeline'
+import Stats from './pages/Stats'
 import ShareView from './pages/ShareView'
-
-function Placeholder({ name }) {
-  return <div style={{ padding: 40, fontSize: 20, color: '#8e99a4' }}>{name} - Coming Soon</div>
-}
 
 export default function App() {
   return (
@@ -23,8 +21,8 @@ export default function App() {
               <Route path="/trips/new" element={<TripEditor />} />
               <Route path="/trips/:id" element={<TripDetail />} />
               <Route path="/trips/:id/edit" element={<TripEditor />} />
-              <Route path="/timeline" element={<Placeholder name="Timeline" />} />
-              <Route path="/stats" element={<Placeholder name="Stats" />} />
+              <Route path="/timeline" element={<Timeline />} />
+              <Route path="/stats" element={<Stats />} />
             </Routes>
           </Layout>
         } />

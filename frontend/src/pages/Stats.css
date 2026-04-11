@@ -1,0 +1,8 @@
+.stats-overview { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 24px; }
+.stats-num { background: #fff; border-radius: 16px; padding: 16px 12px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.stats-num .n { font-size: 24px; font-weight: 800; }
+.stats-num .l { font-size: 10px; color: #8e99a4; margin-top: 4px; }
+
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.chart-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.chart-card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
