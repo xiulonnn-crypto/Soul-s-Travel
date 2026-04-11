@@ -372,7 +372,7 @@ def _score_label(score):
     return "较差"
 
 
-def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs):
+def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs, profile=None):
     """一句话总评"""
     cities = [leg.get("city", "") for leg in legs if leg.get("city")]
     dest = "、".join(cities[:3])
@@ -395,6 +395,16 @@ def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs):
     else:
         quality = "有提升空间的"
 
+    prefix = ""
+    visited = profile.get("visited_countries_cities") if profile else None
+    if visited and isinstance(visited, dict) and visited:
+        n_countries = len(visited)
+        n_cities = sum(len(c) for c in visited.values() if isinstance(c, dict))
+        if n_countries > 0 and n_cities > 0:
+            prefix = f"作为已探访 {n_countries} 国 {n_cities} 城的旅行者，这是一次"
+
+    if prefix:
+        return f"{prefix}{cost_tag}{quality}{dest}之旅"
     return f"{cost_tag}{quality}{dest}之旅"
 
 
@@ -559,10 +569,17 @@ def _generate_city_text(city, num_days, daily_cost, market_daily,
     return "，".join(parts[:3]) + "。" + ("，".join(parts[3:]) + "。" if len(parts) > 3 else "")
 
 
-def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks):
+def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks, profile=None):
     """后续行程建议"""
     suggestions = []
     visited_cities = {leg.get("city", "") for leg in legs}
+
+    # 合并 profile 中历史访问过的城市
+    visited = profile.get("visited_countries_cities") if profile else None
+    if visited and isinstance(visited, dict):
+        for country_cities in visited.values():
+            if isinstance(country_cities, dict):
+                visited_cities.update(country_cities.keys())
 
     # 基于景点遗漏的建议
     for city_data in attractions_m.get("cities", []):
@@ -614,10 +631,11 @@ def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks)
 # 4. 主入口
 # ---------------------------------------------------------------------------
 
-def generate_evaluation(trip_dict):
+def generate_evaluation(trip_dict, profile=None):
     """
     生成行程评价。
     trip_dict: Trip.to_dict(include_legs=True, include_expenses=True) 的结果
+    profile: UserProfile.to_dict() 或 None
     返回: {"overall_score": int, "evaluation_data": dict}
     """
     benchmarks = _load_benchmarks()
@@ -639,7 +657,7 @@ def generate_evaluation(trip_dict):
         attractions_m["score"] * 0.30
     )
 
-    summary = _generate_summary(overall, cost_m, pace_m, attractions_m, legs)
+    summary = _generate_summary(overall, cost_m, pace_m, attractions_m, legs, profile)
 
     # 城市维度评价
     cities = []
@@ -647,7 +665,18 @@ def generate_evaluation(trip_dict):
         city_eval = _evaluate_city(leg, expenses, benchmarks)
         cities.append(city_eval)
 
-    suggestions = _generate_suggestions(trip_dict, legs, cost_m, pace_m, attractions_m, benchmarks)
+    suggestions = _generate_suggestions(trip_dict, legs, cost_m, pace_m, attractions_m, benchmarks, profile)
+
+    cost_text = _generate_cost_text(cost_m)
+    cost_tags = _generate_cost_tags(cost_m)
+
+    # 花费维度：预算占比增强
+    if profile and profile.get("annual_travel_budget", 0) > 0:
+        budget = profile["annual_travel_budget"]
+        budget_pct = round(cost_m["total_expense"] / budget * 100)
+        if budget_pct > 50:
+            cost_tags.append({"type": "warning", "text": f"占年度预算 {budget_pct}%"})
+        cost_text += f"本次行程占年度旅游预算的 {budget_pct}%。"
 
     evaluation_data = {
         "summary": summary,
@@ -655,8 +684,8 @@ def generate_evaluation(trip_dict):
             "cost": {
                 "score": cost_m["score"],
                 "label": "花费性价比",
-                "text": _generate_cost_text(cost_m),
-                "tags": _generate_cost_tags(cost_m),
+                "text": cost_text,
+                "tags": cost_tags,
                 "metrics": cost_m,
             },
             "pace": {

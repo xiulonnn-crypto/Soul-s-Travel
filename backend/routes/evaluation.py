@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify
 from database import get_session
 from models import Trip, TripEvaluation
 from services.evaluator import generate_evaluation
+from routes.profile import _get_or_create_profile
 
 evaluation_bp = Blueprint("evaluation", __name__)
 
@@ -20,7 +21,9 @@ def get_evaluation(trip_id):
             return jsonify(existing.to_dict())
 
         trip_dict = trip.to_dict(include_legs=True, include_expenses=True)
-        result = generate_evaluation(trip_dict)
+        profile = _get_or_create_profile(session)
+        profile_dict = profile.to_dict()
+        result = generate_evaluation(trip_dict, profile=profile_dict)
 
         evaluation = TripEvaluation(
             trip_id=trip_id,
@@ -51,7 +54,9 @@ def regenerate_evaluation(trip_id):
             session.flush()
 
         trip_dict = trip.to_dict(include_legs=True, include_expenses=True)
-        result = generate_evaluation(trip_dict)
+        profile = _get_or_create_profile(session)
+        profile_dict = profile.to_dict()
+        result = generate_evaluation(trip_dict, profile=profile_dict)
 
         evaluation = TripEvaluation(
             trip_id=trip_id,
