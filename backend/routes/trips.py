@@ -15,7 +15,7 @@ def _parse_date(s):
 def list_trips():
     session = get_session()
     try:
-        q = session.query(Trip)
+        q = session.query(Trip).filter(Trip.is_deleted == False)  # noqa: E712
         status = request.args.get("status")
         year = request.args.get("year")
         search = request.args.get("search")
@@ -37,7 +37,7 @@ def get_trip(trip_id):
     session = get_session()
     try:
         trip = session.query(Trip).get(trip_id)
-        if not trip:
+        if not trip or trip.is_deleted:
             return jsonify({"error": "Trip not found"}), 404
         return jsonify(trip.to_dict(include_legs=True, include_expenses=True))
     finally:
@@ -189,8 +189,41 @@ def delete_trip(trip_id):
         trip = session.query(Trip).get(trip_id)
         if not trip:
             return jsonify({"error": "Trip not found"}), 404
-        session.delete(trip)
+        trip.is_deleted = True
         session.commit()
         return jsonify({"deleted": trip_id})
+    finally:
+        session.close()
+
+
+@trips_bp.route("/api/trip-days/<int:day_id>/activities", methods=["PATCH"])
+def patch_trip_day_activities(day_id):
+    session = get_session()
+    try:
+        data = request.json or {}
+        if "activity" not in data:
+            return jsonify({"error": "activity is required"}), 400
+
+        day = session.query(TripDay).get(day_id)
+        if not day:
+            return jsonify({"error": "Trip day not found"}), 404
+
+        try:
+            activities = json.loads(day.activities) if day.activities else []
+        except json.JSONDecodeError:
+            activities = []
+        if not isinstance(activities, list):
+            activities = []
+
+        activity = data["activity"]
+        if activity not in activities:
+            activities.append(activity)
+
+        day.activities = json.dumps(activities, ensure_ascii=False)
+        session.commit()
+        return jsonify(day.to_dict())
+    except Exception as e:
+        session.rollback()
+        return jsonify({"error": str(e)}), 400
     finally:
         session.close()
