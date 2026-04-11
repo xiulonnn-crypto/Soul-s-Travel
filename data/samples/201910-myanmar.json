@@ -1,0 +1,219 @@
+{
+  "trip": {
+    "title": "SouL的缅甸行程",
+    "start_date": "2019-10-01",
+    "end_date": "2019-10-07",
+    "traveler_count": 2,
+    "status": "completed",
+    "description": "7天缅甸之旅，途经曼德勒、蒲甘、茵莱湖三座城市，遍览佛塔古城与自然风光。"
+  },
+  "legs": [
+    {
+      "order_index": 1,
+      "city": "曼德勒",
+      "city_en": "Mandalay",
+      "country": "缅甸",
+      "country_en": "Myanmar",
+      "start_date": "2019-10-01",
+      "end_date": "2019-10-03",
+      "days": [
+        {
+          "day_number": 1,
+          "date": "2019-10-01",
+          "description": "从广州经曼谷转机抵达曼德勒，下午游览固都陶佛塔和曼德勒山，晚餐绿象餐厅。",
+          "highlights": "固都陶佛塔「世界上最大的书」，曼德勒山顶俯瞰全城日落",
+          "activities": [
+            "固都陶佛塔 Kuthodaw Pagoda",
+            "曼德勒山 Mandalay Hill",
+            "绿象餐厅"
+          ],
+          "transport": [
+            "广州→曼谷 FD531 00:10-02:10",
+            "曼谷→曼德勒 FD244 11:00-12:15"
+          ],
+          "accommodation": "曼德勒蒲甘国王酒店 Bagan King Hotel Mandalay"
+        },
+        {
+          "day_number": 2,
+          "date": "2019-10-02",
+          "description": "曼德勒周边四大古城一日游：敏贡、实皆、因瓦、阿玛拉普拉，乌本桥看日落。",
+          "highlights": "敏贡佛塔遗迹的壮观塔基，乌本桥日落",
+          "activities": [
+            "敏贡古城 Mingun",
+            "敏贡佛塔 Mingun Paya",
+            "敏贡大钟 Mingun Bell",
+            "实皆古城 Sagaing",
+            "提达固佛学院 Thidagu World Buddhist University",
+            "实皆山 Sagaing Hill",
+            "乌敏东色寺 U Min Thonze Pagoda",
+            "因瓦古城 Inwa",
+            "马哈昂美寺 Maha Aungmye Bonzan",
+            "阿玛拉普拉古城 Amarapura",
+            "乌本桥 U Bein Bridge"
+          ],
+          "transport": [],
+          "accommodation": "曼德勒蒲甘国王酒店 Bagan King Hotel Mandalay"
+        },
+        {
+          "day_number": 3,
+          "date": "2019-10-03",
+          "description": "上午参观马哈根达杨僧院千人僧饭，傍晚飞蒲甘。",
+          "highlights": "千人僧饭的庄严场面",
+          "activities": [
+            "马哈根达杨僧院 Mahar Gandar Yone Monastery"
+          ],
+          "transport": [
+            "曼德勒→蒲甘 7Y241 17:45-18:15"
+          ],
+          "accommodation": "蒲甘奥伦宫酒店及度假村 Aureum Palace Hotel & Resort Bagan"
+        }
+      ]
+    },
+    {
+      "order_index": 2,
+      "city": "蒲甘",
+      "city_en": "Bagan",
+      "country": "缅甸",
+      "country_en": "Myanmar",
+      "start_date": "2019-10-03",
+      "end_date": "2019-10-05",
+      "days": [
+        {
+          "day_number": 4,
+          "date": "2019-10-04",
+          "description": "蒲甘佛塔巡礼，从瑞喜宫塔到苏拉玛尼寺，穿越千年佛塔群。",
+          "highlights": "阿南达寺蒲甘第一佛塔，瑞山陀塔日落，达玛扬基寺的精密砖工",
+          "activities": [
+            "瑞喜宫塔 Shwezigon Pagoda",
+            "娘乌 Nyaung U",
+            "阿南达寺 Ananda Temple",
+            "瑞山陀塔 Shwesandaw Pagoda",
+            "达玛扬基寺 Dhammayangyi Temple",
+            "苏拉玛尼寺 Sulamani Temple"
+          ],
+          "transport": [],
+          "accommodation": "蒲甘奥伦宫酒店及度假村 Aureum Palace Hotel & Resort Bagan"
+        },
+        {
+          "day_number": 5,
+          "date": "2019-10-05",
+          "description": "上午告别蒲甘，前往茵莱湖，途经泰乌村。",
+          "highlights": "泰乌村小乌本桥",
+          "activities": [
+            "泰乌村 Thale Oo"
+          ],
+          "transport": [
+            "蒲甘→茵莱湖"
+          ],
+          "accommodation": null
+        }
+      ]
+    },
+    {
+      "order_index": 3,
+      "city": "茵莱湖",
+      "city_en": "Inle Lake",
+      "country": "缅甸",
+      "country_en": "Myanmar",
+      "start_date": "2019-10-05",
+      "end_date": "2019-10-07",
+      "days": [
+        {
+          "day_number": 6,
+          "date": "2019-10-06",
+          "description": "游览茵莱湖水上市场，体验水上生活。",
+          "highlights": "五日一次的水上集市，水上浮岛菜园",
+          "activities": [
+            "茵莱湖水上市场"
+          ],
+          "transport": [],
+          "accommodation": "良瑞皇家酒店 Royal Nyaung Shwe Hotel"
+        },
+        {
+          "day_number": 7,
+          "date": "2019-10-07",
+          "description": "返程日，经海霍、曼德勒、昆明中转回深圳。",
+          "highlights": null,
+          "activities": [],
+          "transport": [
+            "海霍→曼德勒 K7707 08:40-10:05",
+            "曼德勒→昆明 MU2030 15:40-18:50",
+            "昆明→深圳 MU5763 21:55-00:10"
+          ],
+          "accommodation": null
+        }
+      ]
+    }
+  ],
+  "expenses": [
+    {
+      "date": "2019-10-01",
+      "leg_city": "曼德勒",
+      "category": "交通",
+      "description": "广州→曼谷机票 FD531 (2人)",
+      "amount": 3344.00,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-01",
+      "leg_city": "曼德勒",
+      "category": "住宿",
+      "description": "曼德勒蒲甘国王酒店 Bagan King Hotel (3晚/2人)",
+      "amount": 1346.52,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-04",
+      "leg_city": "蒲甘",
+      "category": "住宿",
+      "description": "蒲甘奥伦宫酒店 Aureum Palace Hotel (2晚/2人)",
+      "amount": 3308.78,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-06",
+      "leg_city": "茵莱湖",
+      "category": "住宿",
+      "description": "良瑞皇家酒店 Royal Nyaung Shwe Hotel (1晚)",
+      "amount": 582.74,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-07",
+      "leg_city": "茵莱湖",
+      "category": "交通",
+      "description": "海霍→曼德勒 K7707 (2人)",
+      "amount": 1534.00,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-07",
+      "leg_city": "茵莱湖",
+      "category": "交通",
+      "description": "曼德勒→昆明 MU2030 (2人)",
+      "amount": 2800.00,
+      "currency": "CNY"
+    },
+    {
+      "date": "2019-10-07",
+      "leg_city": "茵莱湖",
+      "category": "交通",
+      "description": "昆明→深圳 MU5763 (2人)",
+      "amount": 2800.00,
+      "currency": "CNY"
+    }
+  ],
+  "expense_summary": {
+    "total": 15716.04,
+    "per_person": 7858.02,
+    "by_category": {
+      "交通": 10478.00,
+      "住宿": 5238.04
+    },
+    "by_leg": {
+      "曼德勒": 4690.52,
+      "蒲甘": 3308.78,
+      "茵莱湖": 7716.74
+    }
+  }
+}
