@@ -3,8 +3,31 @@ from datetime import date
 from flask import Blueprint, request, jsonify
 from database import get_session
 from models import Trip, Leg, TripDay, Expense
+from routes.profile import _get_or_create_profile
 
 trips_bp = Blueprint("trips", __name__)
+
+
+def _sync_visited_destinations(session):
+    """汇总已完成行程的 leg，写入 UserProfile.visited_countries_cities。"""
+    rows = (
+        session.query(Leg.country, Leg.city, Leg.start_date)
+        .join(Trip, Leg.trip_id == Trip.id)
+        .filter(Trip.status == "completed")
+        .filter(Trip.is_deleted == False)  # noqa: E712
+        .all()
+    )
+    earliest = {}
+    for country, city, start_date in rows:
+        key = (country, city)
+        if key not in earliest or start_date < earliest[key]:
+            earliest[key] = start_date
+    nested = {}
+    for (country, city), d in earliest.items():
+        nested.setdefault(country, {})[city] = f"{d.year:04d}-{d.month:02d}"
+    profile = _get_or_create_profile(session)
+    profile.visited_countries_cities = json.dumps(nested, ensure_ascii=False)
+    session.commit()
 
 
 def _parse_date(s):
@@ -100,6 +123,10 @@ def create_trip():
             session.add(expense)
 
         session.commit()
+        try:
+            _sync_visited_destinations(session)
+        except Exception:
+            session.rollback()
         return jsonify(trip.to_dict(include_legs=True, include_expenses=True)), 201
     except Exception as e:
         session.rollback()
@@ -174,6 +201,10 @@ def update_trip(trip_id):
                 session.add(expense)
 
         session.commit()
+        try:
+            _sync_visited_destinations(session)
+        except Exception:
+            session.rollback()
         return jsonify(trip.to_dict(include_legs=True, include_expenses=True))
     except Exception as e:
         session.rollback()
