@@ -27,6 +27,15 @@ export const evaluationApi = {
   regenerate: (tripId) => api.post(`/trips/${tripId}/evaluation`).then(r => r.data),
 }
 
+export const profileApi = {
+  get: () => api.get('/profile').then(r => r.data),
+  update: (data) => api.put('/profile', data).then(r => r.data),
+}
+
+export const tripDayApi = {
+  addActivity: (dayId, activity) => api.patch(`/trip-days/${dayId}/activities`, { activity }).then(r => r.data),
+}
+
 export const parseApi = {
   text: (text) => api.post('/parse', { text }).then(r => r.data),
   file: (file) => {
