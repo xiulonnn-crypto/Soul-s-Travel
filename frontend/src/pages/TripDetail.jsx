@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button, Tag, message, Tabs, Modal } from 'antd'
-import { EditOutlined, ShareAltOutlined, DeleteOutlined, ExclamationCircleOutlined, UserOutlined } from '@ant-design/icons'
+import { EditOutlined, ShareAltOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { tripApi } from '../services/api'
 import ExpenseTable from '../components/ExpenseTable'
-import ProfileDrawer from '../components/ProfileDrawer'
 import TripEvaluation from '../components/TripEvaluation'
 import './TripDetail.css'
 
@@ -68,7 +67,6 @@ function ExpenseDetail({ expenses = [], travelerCount = 1 }) {
 export default function TripDetail() {
   const { id } = useParams()
   const [trip, setTrip] = useState(null)
-  const [profileOpen, setProfileOpen] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -143,9 +141,7 @@ export default function TripDetail() {
                   onClick={() => navigate(`/trips/${trip.id}/edit`)}>编辑</Button>
           <Button shape="round" icon={<ShareAltOutlined />} onClick={handleShare}>分享</Button>
           <Button shape="round" danger icon={<DeleteOutlined />} onClick={handleDelete}>删除</Button>
-          <Button shape="round" icon={<UserOutlined />} onClick={() => setProfileOpen(true)}>个人背景</Button>
         </div>
-        <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
       </div>
 
       <Tabs defaultActiveKey="itinerary" items={tabItems} className="detail-tabs" />
