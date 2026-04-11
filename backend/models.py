@@ -160,3 +160,32 @@ class TripEvaluation(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True)
+    household_income = Column(Float, default=1600000)
+    annual_travel_budget = Column(Float, default=100000)
+    family_description = Column(Text, default="夫妻两人")
+    visited_countries_cities = Column(Text, default="{}")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        visited = {}
+        if self.visited_countries_cities:
+            try:
+                visited = json.loads(self.visited_countries_cities)
+            except json.JSONDecodeError:
+                visited = {}
+        return {
+            "id": self.id,
+            "household_income": self.household_income,
+            "annual_travel_budget": self.annual_travel_budget,
+            "family_description": self.family_description,
+            "visited_countries_cities": visited,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }

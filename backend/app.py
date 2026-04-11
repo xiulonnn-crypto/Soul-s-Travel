@@ -8,6 +8,7 @@ from routes.stats import stats_bp
 from routes.share import share_bp
 from routes.parse import parse_bp
 from routes.evaluation import evaluation_bp
+from routes.profile import profile_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -16,6 +17,7 @@ app.register_blueprint(stats_bp)
 app.register_blueprint(share_bp)
 app.register_blueprint(parse_bp)
 app.register_blueprint(evaluation_bp)
+app.register_blueprint(profile_bp)
 
 
 @app.route("/api/health")
