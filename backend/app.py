@@ -4,12 +4,14 @@ from database import init_db
 from routes.trips import trips_bp
 from routes.stats import stats_bp
 from routes.share import share_bp
+from routes.parse import parse_bp
 
 app = Flask(__name__)
 CORS(app)
 app.register_blueprint(trips_bp)
 app.register_blueprint(stats_bp)
 app.register_blueprint(share_bp)
+app.register_blueprint(parse_bp)
 
 
 @app.route("/api/health")

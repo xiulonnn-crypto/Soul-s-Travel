@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import TripList from './pages/TripList'
 import TripDetail from './pages/TripDetail'
+import TripEditor from './pages/TripEditor'
 import ShareView from './pages/ShareView'
 
 function Placeholder({ name }) {
@@ -19,9 +20,9 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/trips" element={<TripList />} />
-              <Route path="/trips/new" element={<Placeholder name="New Trip" />} />
+              <Route path="/trips/new" element={<TripEditor />} />
               <Route path="/trips/:id" element={<TripDetail />} />
-              <Route path="/trips/:id/edit" element={<Placeholder name="Edit Trip" />} />
+              <Route path="/trips/:id/edit" element={<TripEditor />} />
               <Route path="/timeline" element={<Placeholder name="Timeline" />} />
               <Route path="/stats" element={<Placeholder name="Stats" />} />
             </Routes>

@@ -1,0 +1,11 @@
+.trip-form { padding: 4px; }
+.form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.form-header h3 { font-size: 17px; font-weight: 700; }
+.form-block { background: #fff; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.form-block h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.f-row { display: flex; gap: 12px; margin-bottom: 10px; }
+.f-group { flex: 1; }
+.f-label { font-size: 11px; color: #8e99a4; margin-bottom: 3px; display: block; }
+.f-input.ai-fill { background: #f0f9ff; border-color: #b3deff; }
+.day-form-block { background: #e8f4ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+.day-form-label { font-size: 12px; font-weight: 600; color: #0099ff; margin-bottom: 8px; }
