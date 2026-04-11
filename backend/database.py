@@ -14,4 +14,17 @@ def get_session():
 
 def init_db():
     from models import Trip, Leg, TripDay, Expense, TripEvaluation, UserProfile  # noqa: F401
-    Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine, checkfirst=True)
+    _migrate_add_is_deleted()
+
+
+def _migrate_add_is_deleted():
+    """Add is_deleted column to trips table if it doesn't exist."""
+    from sqlalchemy import text, inspect
+    insp = inspect(engine)
+    columns = [c["name"] for c in insp.get_columns("trips")]
+    if "is_deleted" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text(
+                "ALTER TABLE trips ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT 0"
+            ))

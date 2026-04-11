@@ -40,11 +40,11 @@ export default function ProfileDrawer({ open, onClose }) {
     profileApi.get()
       .then(data => {
         form.setFieldsValue({
-          family_desc: data.family_desc,
-          annual_income: data.annual_income ? data.annual_income / 10000 : undefined,
+          family_description: data.family_description,
+          household_income: data.household_income ? data.household_income / 10000 : undefined,
           annual_travel_budget: data.annual_travel_budget ? data.annual_travel_budget / 10000 : undefined,
         })
-        setVisited(data.visited_places || {})
+        setVisited(data.visited_countries_cities || {})
       })
       .catch(() => message.error('加载个人背景失败'))
       .finally(() => setLoading(false))
@@ -55,8 +55,8 @@ export default function ProfileDrawer({ open, onClose }) {
     setSaving(true)
     try {
       await profileApi.update({
-        family_desc: values.family_desc,
-        annual_income: values.annual_income ? values.annual_income * 10000 : 0,
+        family_description: values.family_description,
+        household_income: values.household_income ? values.household_income * 10000 : 0,
         annual_travel_budget: values.annual_travel_budget ? values.annual_travel_budget * 10000 : 0,
       })
       message.success('已保存')
@@ -83,11 +83,11 @@ export default function ProfileDrawer({ open, onClose }) {
     >
       <Spin spinning={loading}>
         <Form form={form} layout="vertical" className="profile-form">
-          <Form.Item label="家庭描述" name="family_desc">
+          <Form.Item label="家庭描述" name="family_description">
             <Input placeholder="例如：夫妻两人" />
           </Form.Item>
-          <Form.Item label="年薪税后（万）" name="annual_income">
-            <InputNumber min={0} placeholder="例如：30" style={{ width: '100%' }} />
+          <Form.Item label="年薪税后（万）" name="household_income">
+            <InputNumber min={0} placeholder="例如：160" style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item label="年旅游预算（万）" name="annual_travel_budget">
             <InputNumber min={0} placeholder="例如：5" style={{ width: '100%' }} />

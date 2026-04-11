@@ -10,7 +10,7 @@ stats_bp = Blueprint("stats", __name__)
 def overview():
     session = get_session()
     try:
-        trips = session.query(Trip).filter(Trip.status == "completed").all()
+        trips = session.query(Trip).filter(Trip.status == "completed", Trip.is_deleted == False).all()  # noqa: E712
         total_trips = len(trips)
         total_days = sum((t.end_date - t.start_date).days for t in trips)
         countries = set()
@@ -36,7 +36,7 @@ def overview():
 def destinations():
     session = get_session()
     try:
-        legs = session.query(Leg).join(Trip).filter(Trip.status == "completed").all()
+        legs = session.query(Leg).join(Trip).filter(Trip.status == "completed", Trip.is_deleted == False).all()  # noqa: E712
         country_counts = {}
         city_counts = {}
         for leg in legs:
@@ -56,13 +56,13 @@ def expense_stats():
     try:
         by_category = session.query(
             Expense.category, func.sum(Expense.amount)
-        ).group_by(Expense.category).all()
+        ).join(Trip).filter(Trip.is_deleted == False).group_by(Expense.category).all()  # noqa: E712
 
         by_trip = session.query(
             Trip.id, Trip.title, func.sum(Expense.amount)
-        ).join(Expense).group_by(Trip.id).order_by(Trip.start_date).all()
+        ).join(Expense).filter(Trip.is_deleted == False).group_by(Trip.id).order_by(Trip.start_date).all()  # noqa: E712
 
-        trips = session.query(Trip).filter(Trip.status == "completed").all()
+        trips = session.query(Trip).filter(Trip.status == "completed", Trip.is_deleted == False).all()  # noqa: E712
         per_day_trend = []
         for t in trips:
             days = max((t.end_date - t.start_date).days, 1)

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, Text, Float, Date, DateTime, ForeignKey
+    Column, Integer, Text, Float, Date, DateTime, ForeignKey, Boolean
 )
 from sqlalchemy.orm import relationship
 from database import Base
@@ -19,6 +19,7 @@ class Trip(Base):
     cover_image = Column(Text)
     share_token = Column(Text, unique=True)
     status = Column(Text, default="completed")
+    is_deleted = Column(Boolean, default=False, nullable=False, server_default="0")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
