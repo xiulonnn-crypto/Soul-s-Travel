@@ -1,0 +1,2 @@
+.triplist-page .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; justify-content: space-between; }

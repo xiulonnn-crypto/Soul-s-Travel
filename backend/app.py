@@ -1,9 +1,11 @@
 from flask import Flask
 from flask_cors import CORS
 from database import init_db
+from routes.trips import trips_bp
 
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(trips_bp)
 
 
 @app.route("/api/health")
