@@ -9,21 +9,25 @@ function VisitedPlaces({ visited = {} }) {
 
   return (
     <div className="profile-visited">
-      {countries.map(country => (
-        <div key={country} className="visited-country">
-          <div className="visited-country-name">🌏 {country}</div>
-          <div className="visited-cities">
-            {Object.entries(visited[country]).map(([city, date]) => {
-              const [y, m] = date.split('-')
-              return (
-                <Tag key={city} className="visited-tag">
-                  {y}年{parseInt(m)}月 · {city}
-                </Tag>
-              )
-            })}
+      {countries.map(country => {
+        const raw = visited[country]
+        const trips = (Array.isArray(raw) ? [...raw] : []).sort((a, b) => a.date.localeCompare(b.date))
+        return (
+          <div key={country} className="visited-country">
+            <div className="visited-country-name">🌏 {country}</div>
+            <div className="visited-cities">
+              {trips.map((trip, i) => {
+                const [y, m] = trip.date.split('-')
+                return (
+                  <Tag key={`${trip.date}-${i}`} className="visited-tag">
+                    {y}年{parseInt(m)}月 {trip.cities.join('/')}
+                  </Tag>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

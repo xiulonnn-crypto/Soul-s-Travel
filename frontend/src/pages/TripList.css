@@ -1,2 +1,6 @@
 .triplist-page .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
 .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; justify-content: space-between; }
+.triplist-page .trip-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+@media (max-width: 960px) { .triplist-page .trip-list { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) { .triplist-page .trip-list { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .triplist-page .trip-list { grid-template-columns: 1fr; } }

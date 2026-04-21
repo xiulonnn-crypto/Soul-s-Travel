@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { statsApi } from '../services/api'
-import { CategoryPie, TripExpenseBar, PerDayTrend, DestinationRank } from '../components/StatsChart'
+import { CategoryPie, TripExpenseBar, PerDayTrend, DestinationRank, YearExpenseBar } from '../components/StatsChart'
 import './Stats.css'
 
 export default function Stats() {
@@ -52,6 +52,15 @@ export default function Stats() {
             <TripExpenseBar data={expenses.by_trip} />
           </div>
         )}
+        {expenses && expenses.by_year && (
+          <div className="chart-card">
+            <h3 className="chart-card-title">📅 年度开销对比</h3>
+            <YearExpenseBar data={expenses.by_year} />
+          </div>
+        )}
+      </div>
+
+      <div className="chart-row">
         {expenses && (
           <div className="chart-card">
             <h3 className="chart-card-title">📈 人均日消费趋势</h3>

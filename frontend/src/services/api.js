@@ -43,6 +43,7 @@ export const parseApi = {
     form.append('file', file)
     return api.post('/parse', form).then(r => r.data)
   },
+  url: (url) => api.post('/parse/url', { url }).then(r => r.data),
 }
 
 export default api

@@ -1,32 +1,98 @@
 import { useNavigate } from 'react-router-dom'
+import { EnvironmentOutlined } from '@ant-design/icons'
 import './TripCard.css'
 
-const BG_COLORS = ['bg-green', 'bg-yellow', 'bg-blue', 'bg-pink', 'bg-purple']
+const THEMES = [
+  { bg: 'bg-blue',   accent: '#0099ff', spine: 'linear-gradient(to bottom, #60b4ff, #0099ff)', days: 'linear-gradient(to right, #60b4ff, #0099ff)' },
+  { bg: 'bg-green',  accent: '#34c759', spine: 'linear-gradient(to bottom, #6ee89a, #34c759)', days: 'linear-gradient(to right, #6ee89a, #34c759)' },
+  { bg: 'bg-yellow', accent: '#f59e0b', spine: 'linear-gradient(to bottom, #fbbf24, #f59e0b)', days: 'linear-gradient(to right, #fbbf24, #f59e0b)' },
+  { bg: 'bg-pink',   accent: '#ec4899', spine: 'linear-gradient(to bottom, #f472b6, #ec4899)', days: 'linear-gradient(to right, #f472b6, #ec4899)' },
+  { bg: 'bg-purple', accent: '#a855f7', spine: 'linear-gradient(to bottom, #c084fc, #a855f7)', days: 'linear-gradient(to right, #c084fc, #a855f7)' },
+]
+
+function stampClass(score) {
+  if (score >= 80) return 'stamp-green'
+  if (score >= 60) return 'stamp-yellow'
+  return 'stamp-red'
+}
 
 export default function TripCard({ trip, index = 0 }) {
   const navigate = useNavigate()
-  const bgClass = BG_COLORS[index % BG_COLORS.length]
+  const theme = THEMES[index % THEMES.length]
+
   const days = Math.max(
     1,
     Math.ceil((new Date(trip.end_date) - new Date(trip.start_date)) / 86400000)
   )
-  const legCount = trip.legs ? trip.legs.length : 0
-  const cities = trip.legs
-    ? trip.legs.map(l => l.city).join(' → ')
-    : ''
+
+  const destination = trip.destination_label || ''
+  const legCount = trip.leg_count || 0
+  const expense = trip.total_expense || 0
+  const score = trip.evaluation_score ?? null
+
+  const year = new Date(trip.start_date).getFullYear()
+  const startMonth = new Date(trip.start_date).getMonth() + 1
+  const startDay = new Date(trip.start_date).getDate()
+  const endMonth = new Date(trip.end_date).getMonth() + 1
+  const endDay = new Date(trip.end_date).getDate()
+  const dateStr = startMonth === endMonth
+    ? `${startMonth}.${startDay}–${endDay}`
+    : `${startMonth}.${startDay}–${endMonth}.${endDay}`
 
   return (
-    <div className={`trip-card ${bgClass}`} onClick={() => navigate(`/trips/${trip.id}`)}>
-      <div className="tc-info">
-        <div className="tc-title">{trip.title}</div>
-        <div className="tc-meta">
-          {trip.start_date} 至 {trip.end_date}  
-          <b>{days}天</b>
-          {legCount > 0 && <><br />{legCount}个城市 &middot; {cities}</>}
+    <div
+      className="trip-card-wrapper"
+      style={{ '--anim-delay': `${index * 0.2}s` }}
+    >
+      <div
+        className={`trip-card ${theme.bg}`}
+        onClick={() => navigate(`/trips/${trip.id}`)}
+      >
+        {/* 书脊 */}
+        <div className="card-spine" style={{ background: theme.spine }} />
+
+        {/* 上段：标题行 + 目的地 */}
+        <div className="card-top">
+          <div className="card-title-row">
+            <h3 className="card-title">{trip.title}</h3>
+            <span className="card-days" style={{ background: theme.days }}>
+              {days}天
+            </span>
+          </div>
+          {destination && (
+            <div className="card-dest" style={{ color: theme.accent }}>
+              <EnvironmentOutlined />
+              <span>{destination}</span>
+              {legCount > 0 && <span className="card-leg">{legCount}地</span>}
+            </div>
+          )}
         </div>
-        {trip.total_expense > 0 && (
-          <div className="tc-cost">¥{trip.total_expense.toLocaleString()}</div>
-        )}
+
+        {/* 中段：评价印章（居中） */}
+        <div className="card-middle">
+          {score !== null && (
+            <div className={`card-stamp ${stampClass(score)}`}>
+              <span className="stamp-score">{score}</span>
+              <span className="stamp-label">SCORE</span>
+            </div>
+          )}
+        </div>
+
+        {/* 下段：日期 + 花费 */}
+        <div className="card-bottom">
+          <span className="card-date">
+            {year}<br />{dateStr}
+          </span>
+          {expense > 0 && (
+            <span className="card-expense">
+              ¥{expense >= 10000 ? (expense / 10000).toFixed(1) + 'w' : expense.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        {/* 悬停效果层 */}
+        <div className="card-hover-overlay" />
+        <div className="card-edge-shimmer" />
       </div>
     </div>
   )

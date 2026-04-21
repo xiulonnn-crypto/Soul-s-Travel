@@ -62,6 +62,12 @@
 /* ── Form blocks ── */
 .form-block { background: #fff; border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
 .form-block h4 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+/* ── Block header with edit button ── */
+.form-block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.form-block-header h4 { margin-bottom: 0; }
+.section-edit-btn { color: #0099ff; font-size: 12px; border-radius: 50px; }
+.section-edit-btn:hover { color: #007acc; background: #e8f4ff; }
 .f-row { display: flex; gap: 12px; margin-bottom: 10px; }
 .f-group { flex: 1; }
 .f-label { font-size: 11px; color: #8e99a4; margin-bottom: 3px; display: block; }
@@ -69,10 +75,32 @@
 .f-empty { font-size: 13px; color: #c0c8d0; }
 .day-form-block { background: #e8f4ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
 .day-form-label { font-size: 12px; font-weight: 600; color: #0099ff; margin-bottom: 8px; }
+.day-form-block .f-row { margin-bottom: 6px; }
+.day-form-block .f-group { display: flex; align-items: center; gap: 8px; }
+.day-form-block .f-label { margin-bottom: 0; white-space: nowrap; }
 
 /* ── Transport tags ── */
-.transport-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
+.transport-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; align-items: center; }
 .transport-tag { font-size: 12px; margin: 0; }
+
+/* ── Tag editing ── */
+.tag-add-btn {
+  border: 1px dashed #0099ff;
+  color: #0099ff;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 50px;
+  margin: 0;
+}
+.tag-add-btn:hover { background: #e8f4ff; }
+.tag-add-input {
+  width: 100px;
+  height: 24px;
+  font-size: 12px;
+  border-radius: 50px;
+  padding: 0 10px;
+}
 
 /* ── Expense table ── */
 .expense-table { border-radius: 10px; overflow: hidden; border: 1px solid #e5e8ed; }
@@ -88,3 +116,35 @@
 .expense-amount { text-align: right; font-weight: 600; color: #1a1a2e; font-variant-numeric: tabular-nums; }
 .expense-total { display: grid; grid-template-columns: 52px 1fr 90px; padding: 10px 12px; border-top: 2px solid #e5e8ed; font-size: 13px; font-weight: 700; background: #f5f7fa; }
 .expense-total span:last-child { text-align: right; color: #0099ff; }
+
+/* ── Expense editing ── */
+/* 第一列需容纳类别 Select（两字中文 + 箭头），52px 会导致文字与下拉项被截断 */
+.expense-table.editing .expense-header,
+.expense-table.editing .expense-row,
+.expense-table.editing .expense-total {
+  grid-template-columns: 100px 1fr 90px 36px;
+}
+.expense-action { display: flex; align-items: center; justify-content: center; }
+.expense-action .ant-btn-dangerous { color: #c0c8d0; }
+.expense-action .ant-btn-dangerous:hover { color: #ff3b30; }
+.expense-confirm-btn { color: #0099ff; }
+.expense-confirm-btn:hover { color: #007acc; }
+.expense-row-new input,
+.expense-row-new .ant-select { width: 100%; max-width: 100%; }
+.expense-new-amount { width: 100%; }
+.expense-new-select .ant-select-selector { border-radius: 50px !important; font-size: 12px; }
+.expense-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px dashed #0099ff;
+  border-radius: 50px;
+  color: #0099ff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.expense-add-row:hover { background: #e8f4ff; }

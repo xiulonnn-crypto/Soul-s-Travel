@@ -16,5 +16,8 @@
 .sec-head { margin-bottom: 16px; }
 .sec-title { font-size: 17px; font-weight: 600; }
 
-.trip-list { display: flex; flex-direction: column; gap: 14px; }
-.empty-state { padding: 60px 0; text-align: center; color: #8e99a4; font-size: 14px; }
+.trip-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+@media (max-width: 960px) { .trip-list { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) { .trip-list { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .trip-list { grid-template-columns: 1fr; } }
+.empty-state { padding: 60px 0; text-align: center; color: #8e99a4; font-size: 14px; grid-column: 1 / -1; }

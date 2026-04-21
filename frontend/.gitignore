@@ -1,4 +1,4 @@
-# Logs
+# ─── 日志 ────────────────────────
 logs
 *.log
 npm-debug.log*
@@ -7,18 +7,41 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ─── 依赖 ────────────────────────
+node_modules/
+jspm_packages/
 
-# Editor directories and files
+# ─── 构建产物 ─────────────────────
+dist
+dist-sr/
+.output/
+
+# ─── 环境变量 ─────────────────────
+*.local
+.env
+.env.*
+!.env.example
+
+# ─── Vite 缓存 ────────────────────
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ─── 测试覆盖率 ───────────────────
+coverage
+*.lcov
+.nyc_output
+
+# ─── 编辑器 / IDE ─────────────────
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ─── TypeScript ───────────────────
+*.tsbuildinfo

@@ -1,24 +1,243 @@
+/* === 浮动动画 === */
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+@keyframes stamp-rock {
+  0%, 100% { transform: rotate(-5deg); }
+  50%       { transform: rotate(0deg); }
+}
+
+@keyframes gloss-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.65; }
+}
+
+/* === 包装层：承载浮动动画 === */
+.trip-card-wrapper {
+  perspective: 1000px;
+  border-radius: 16px;
+  animation: card-float 3s ease-in-out infinite;
+  animation-delay: var(--anim-delay, 0s);
+}
+.trip-card-wrapper:hover {
+  animation-play-state: paused;
+}
+
+/* === 行程卡片主体 === */
 .trip-card {
-  border-radius: 20px;
-  padding: 22px 26px;
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  display: flex;
+  flex-direction: column;
+}
+.trip-card-wrapper:hover .trip-card {
+  transform: rotateY(-5deg) rotateX(2deg) scale(1.05);
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.25);
+}
+
+/* 渐变背景色组 */
+.bg-blue   { background: linear-gradient(135deg, #e6f2ff, #cce5ff); }
+.bg-green  { background: linear-gradient(135deg, #e8f7ee, #d4f0df); }
+.bg-yellow { background: linear-gradient(135deg, #fef6e4, #fdecc8); }
+.bg-pink   { background: linear-gradient(135deg, #fde8ef, #fbd0df); }
+.bg-purple { background: linear-gradient(135deg, #f0e6f6, #e3d0f0); }
+
+/* === 书脊 === */
+.card-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  border-radius: 16px 0 0 16px;
+  z-index: 1;
+}
+
+/* === 上段：标题区 === */
+.card-top {
+  padding: 20px 20px 14px 26px;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* 标题行：标题文字 + 天数徽标并排 */
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.card-title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 天数徽标：渐变色 + 脉动 */
+.card-days {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  animation: badge-pulse 2s ease-in-out infinite;
+  animation-delay: var(--anim-delay, 0s);
+}
+
+/* 目的地行 */
+.card-dest {
   display: flex;
   align-items: center;
-  gap: 20px;
-  cursor: pointer;
-  transition: all 0.25s;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
 }
-.trip-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+.card-leg {
+  color: #8e99a4;
+  font-size: 12px;
+  margin-left: 2px;
 }
-.trip-card.bg-green  { background: linear-gradient(135deg, #e8f7ee, #d4f0df); }
-.trip-card.bg-yellow { background: linear-gradient(135deg, #fef6e4, #fdecc8); }
-.trip-card.bg-blue   { background: linear-gradient(135deg, #e6f2ff, #cce5ff); }
-.trip-card.bg-pink   { background: linear-gradient(135deg, #fde8ef, #fbd0df); }
-.trip-card.bg-purple { background: linear-gradient(135deg, #f0e6f6, #e3d0f0); }
 
-.tc-info { flex: 1; }
-.tc-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
-.tc-meta  { font-size: 12px; color: #8e99a4; line-height: 1.6; }
-.tc-meta b { color: #4a5568; font-weight: 600; }
-.tc-cost  { font-size: 14px; font-weight: 700; color: #ff9500; margin-top: 6px; }
+/* === 中段：居中显示印章 === */
+.card-middle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* === 评价印章（双圆环 + 白色内芯 + 光泽） === */
+.card-stamp {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-width: 2px;
+  border-style: solid;
+  outline-width: 3px;
+  outline-style: dashed;
+  outline-offset: 4px;
+  outline-color: inherit;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+  animation: stamp-rock 4s ease-in-out infinite;
+  animation-delay: var(--anim-delay, 0s);
+}
+/* 光泽覆盖层 */
+.card-stamp::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, transparent 60%);
+  pointer-events: none;
+  animation: gloss-pulse 2s ease-in-out infinite;
+  animation-delay: var(--anim-delay, 0s);
+}
+/* 外圈虚线透明度 */
+.stamp-green  { border-color: #16a34a; color: #16a34a; outline-color: rgba(22, 163, 74, 0.4); }
+.stamp-yellow { border-color: #f97316; color: #f97316; outline-color: rgba(249, 115, 22, 0.4); }
+.stamp-red    { border-color: #dc2626; color: #dc2626; outline-color: rgba(220, 38, 38, 0.4); }
+
+.stamp-score {
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+  position: relative;
+  z-index: 1;
+}
+.stamp-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 2px;
+  opacity: 0.7;
+  position: relative;
+  z-index: 1;
+}
+
+/* === 下段：日期 + 花费 === */
+.card-bottom {
+  padding: 12px 20px 18px 26px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+}
+.card-date {
+  font-size: 12px;
+  color: #8e99a4;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.card-expense {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ff9500;
+  line-height: 1;
+}
+
+/* === 悬停效果层 === */
+.card-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top right, transparent 60%, rgba(255, 255, 255, 0.2));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 3;
+}
+.trip-card-wrapper:hover .card-hover-overlay {
+  opacity: 1;
+}
+
+.card-edge-shimmer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+  animation: gloss-pulse 3s ease-in-out infinite;
+  animation-delay: var(--anim-delay, 0s);
+  z-index: 3;
+}

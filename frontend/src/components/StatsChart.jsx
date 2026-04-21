@@ -4,10 +4,12 @@ const COLORS = ['#0099ff', '#af52de', '#ff9500', '#34c759', '#ff6b8a', '#8e99a4'
 
 export function CategoryPie({ data }) {
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={260}>
       <PieChart>
         <Pie data={data} dataKey="total" nameKey="category" cx="50%" cy="50%"
-             outerRadius={80} label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}>
+             outerRadius={70} innerRadius={35}
+             label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+             labelLine={{ strokeWidth: 1 }}>
           {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
         </Pie>
         <Tooltip />
@@ -44,6 +46,21 @@ export function PerDayTrend({ data }) {
         </defs>
         <Area type="monotone" dataKey="per_person_per_day" stroke="#0099ff" fill="url(#colorPpd)" strokeWidth={2.5} />
       </AreaChart>
+    </ResponsiveContainer>
+  )
+}
+
+export function YearExpenseBar({ data }) {
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={data}>
+        <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+        <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `¥${(v / 1000).toFixed(0)}K`} />
+        <Tooltip formatter={v => [`¥${v.toLocaleString()}`, '总开销']} />
+        <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+          {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+        </Bar>
+      </BarChart>
     </ResponsiveContainer>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
-import { Input, DatePicker, InputNumber, Button, Collapse, Tag } from 'antd'
+import { Input, DatePicker, InputNumber, Button, Collapse, Tag, Select } from 'antd'
+import { EditOutlined, CheckOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import './TripForm.css'
 
@@ -9,49 +10,138 @@ const NAV_ITEMS = [
   { id: 'expenses', label: '费用明细', icon: '💰' },
 ]
 
-function ActivityTags({ items }) {
-  if (!items || items.length === 0) return <span className="f-empty">—</span>
+const EXPENSE_CATEGORIES = ['交通', '住宿', '餐饮', '门票', '购物', '其他']
+
+function EditableTagGroup({ items, editing, onRemove, onAdd, color, renderLabel, placeholder }) {
+  const [adding, setAdding] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (adding && inputRef.current) inputRef.current.focus()
+  }, [adding])
+
+  const confirmAdd = () => {
+    if (inputValue.trim()) onAdd?.(inputValue.trim())
+    setInputValue('')
+    setAdding(false)
+  }
+
+  const getColor = typeof color === 'function' ? color : () => color
+  const getLabel = renderLabel || (item => item)
+
+  if (!editing && (!items || items.length === 0)) return <span className="f-empty">—</span>
+
   return (
     <div className="transport-tags">
-      {items.map((item, i) => (
-        <Tag key={i} color="cyan" className="transport-tag">{item}</Tag>
+      {(items || []).map((item, i) => (
+        <Tag
+          key={i}
+          color={getColor(item)}
+          className="transport-tag"
+          closable={editing}
+          onClose={e => { e.preventDefault(); onRemove?.(i) }}
+        >
+          {getLabel(item)}
+        </Tag>
       ))}
+      {editing && (
+        adding ? (
+          <Input
+            ref={inputRef}
+            size="small"
+            className="tag-add-input"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onPressEnter={confirmAdd}
+            onBlur={confirmAdd}
+            placeholder={placeholder}
+          />
+        ) : (
+          <Tag className="tag-add-btn" onClick={() => setAdding(true)}>
+            <PlusOutlined /> 新增
+          </Tag>
+        )
+      )}
     </div>
   )
 }
 
-function TransportTags({ items }) {
-  if (!items || items.length === 0) return <span className="f-empty">—</span>
+function EditableHotelTag({ name, editing, onRemove, onAdd }) {
+  const [adding, setAdding] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (adding && inputRef.current) inputRef.current.focus()
+  }, [adding])
+
+  const confirmAdd = () => {
+    if (inputValue.trim()) onAdd?.(inputValue.trim())
+    setInputValue('')
+    setAdding(false)
+  }
+
+  if (!editing) {
+    if (!name) return <span className="f-empty">—</span>
+    return (
+      <div className="transport-tags">
+        <Tag color="purple" className="transport-tag">🏨 {name}</Tag>
+      </div>
+    )
+  }
+
   return (
     <div className="transport-tags">
-      {items.map((item, i) => {
-        const colonIdx = item.indexOf(':')
-        if (colonIdx > 0 && !/^\d/.test(item)) {
-          // Pre-paired "FD531:广州→曼谷"
-          const code = item.slice(0, colonIdx)
-          const route = item.slice(colonIdx + 1).replace('→', '-')
-          return <Tag key={i} color="volcano" className="transport-tag">✈ {code}:{route}</Tag>
-        }
-        // Route only "曼德勒→蒲甘"
-        return <Tag key={i} color="orange" className="transport-tag">{item.replace('→', '-')}</Tag>
-      })}
+      {name && (
+        <Tag color="purple" className="transport-tag" closable onClose={e => { e.preventDefault(); onRemove?.() }}>
+          🏨 {name}
+        </Tag>
+      )}
+      {!name && (
+        adding ? (
+          <Input
+            ref={inputRef}
+            size="small"
+            className="tag-add-input"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onPressEnter={confirmAdd}
+            onBlur={confirmAdd}
+            placeholder="住宿名称"
+          />
+        ) : (
+          <Tag className="tag-add-btn" onClick={() => setAdding(true)}>
+            <PlusOutlined /> 新增
+          </Tag>
+        )
+      )}
     </div>
   )
 }
 
-function HotelTag({ name }) {
-  if (!name) return <span className="f-empty">—</span>
-  return (
-    <div className="transport-tags">
-      <Tag color="purple" className="transport-tag">🏨 {name}</Tag>
-    </div>
-  )
+const transportColor = (item) => {
+  const colonIdx = item.indexOf(':')
+  return (colonIdx > 0 && !/^\d/.test(item)) ? 'volcano' : 'orange'
+}
+
+const transportLabel = (item) => {
+  const colonIdx = item.indexOf(':')
+  if (colonIdx > 0 && !/^\d/.test(item)) {
+    const code = item.slice(0, colonIdx)
+    const route = item.slice(colonIdx + 1).replace('→', '-')
+    return `✈ ${code}:${route}`
+  }
+  return item.replace('→', '-')
 }
 
 export default function TripForm({ data, onSave }) {
   const [form, setForm] = useState({ title: '', start_date: '', end_date: '', traveler_count: 1, description: '', legs: [], expenses: [] })
   const [dirty, setDirty] = useState(new Set())
   const [activeSection, setActiveSection] = useState('basic')
+  const [legsEditing, setLegsEditing] = useState(false)
+  const [expensesEditing, setExpensesEditing] = useState(false)
+  const [newExpense, setNewExpense] = useState(null)
 
   const basicRef = useRef(null)
   const legsRef = useRef(null)
@@ -105,6 +195,47 @@ export default function TripForm({ data, onSave }) {
     setDirty(prev => new Set(prev).add(key))
   }, [])
 
+  const updateLegDay = useCallback((legIdx, dayIdx, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      legs: prev.legs.map((leg, li) => {
+        if (li !== legIdx) return leg
+        return {
+          ...leg,
+          days: (leg.days || []).map((day, di) => {
+            if (di !== dayIdx) return day
+            return { ...day, [field]: value }
+          })
+        }
+      })
+    }))
+    setDirty(prev => new Set(prev).add('legs'))
+  }, [])
+
+  const removeExpense = useCallback((index) => {
+    setForm(prev => ({
+      ...prev,
+      expenses: prev.expenses.filter((_, i) => i !== index)
+    }))
+    setDirty(prev => new Set(prev).add('expenses'))
+  }, [])
+
+  const addExpense = useCallback((expense) => {
+    setForm(prev => ({
+      ...prev,
+      expenses: [...(prev.expenses || []), expense]
+    }))
+    setDirty(prev => new Set(prev).add('expenses'))
+  }, [])
+
+  const updateExpense = useCallback((index, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      expenses: prev.expenses.map((e, i) => i === index ? { ...e, [field]: value } : e)
+    }))
+    setDirty(prev => new Set(prev).add('expenses'))
+  }, [])
+
   const handleSave = () => {
     onSave({
       title: form.title,
@@ -129,19 +260,47 @@ export default function TripForm({ data, onSave }) {
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">活动</label>
-                <ActivityTags items={day.activities} />
+                <EditableTagGroup
+                  items={day.activities}
+                  editing={legsEditing}
+                  color="cyan"
+                  placeholder="活动名称"
+                  onRemove={idx => {
+                    const next = [...(day.activities || [])]
+                    next.splice(idx, 1)
+                    updateLegDay(li, di, 'activities', next)
+                  }}
+                  onAdd={val => updateLegDay(li, di, 'activities', [...(day.activities || []), val])}
+                />
               </div>
             </div>
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">交通</label>
-                <TransportTags items={day.transport} />
+                <EditableTagGroup
+                  items={day.transport}
+                  editing={legsEditing}
+                  color={transportColor}
+                  renderLabel={transportLabel}
+                  placeholder="交通信息"
+                  onRemove={idx => {
+                    const next = [...(day.transport || [])]
+                    next.splice(idx, 1)
+                    updateLegDay(li, di, 'transport', next)
+                  }}
+                  onAdd={val => updateLegDay(li, di, 'transport', [...(day.transport || []), val])}
+                />
               </div>
             </div>
             <div className="f-row">
               <div className="f-group">
                 <label className="f-label">住宿</label>
-                <HotelTag name={day.accommodation} />
+                <EditableHotelTag
+                  name={day.accommodation}
+                  editing={legsEditing}
+                  onRemove={() => updateLegDay(li, di, 'accommodation', '')}
+                  onAdd={val => updateLegDay(li, di, 'accommodation', val)}
+                />
               </div>
             </div>
           </div>
@@ -198,37 +357,164 @@ export default function TripForm({ data, onSave }) {
 
       {legItems.length > 0 && (
         <div ref={legsRef} className="form-block">
-          <h4>🏙️ 城市站点</h4>
+          <div className="form-block-header">
+            <h4>🏙️ 城市站点</h4>
+            <Button
+              type="text"
+              size="small"
+              className="section-edit-btn"
+              icon={legsEditing ? <CheckOutlined /> : <EditOutlined />}
+              onClick={() => setLegsEditing(!legsEditing)}
+            >
+              {legsEditing ? '完成' : '编辑'}
+            </Button>
+          </div>
           <Collapse items={legItems} defaultActiveKey={[0]} />
         </div>
       )}
 
-      {(form.expenses || []).length > 0 && (
-        <div ref={expensesRef} className="form-block">
+      <div ref={expensesRef} className="form-block">
+        <div className="form-block-header">
           <h4>💰 费用明细</h4>
-          <div className="expense-table">
+          <Button
+            type="text"
+            size="small"
+            className="section-edit-btn"
+            icon={expensesEditing ? <CheckOutlined /> : <EditOutlined />}
+            onClick={() => { setExpensesEditing(!expensesEditing); setNewExpense(null) }}
+          >
+            {expensesEditing ? '完成' : '编辑'}
+          </Button>
+        </div>
+        {(form.expenses || []).length > 0 ? (
+          <div className={`expense-table${expensesEditing ? ' editing' : ''}`}>
             <div className="expense-header">
               <span>类别</span>
               <span>描述</span>
               <span>金额</span>
+              {expensesEditing && <span></span>}
             </div>
             {(form.expenses || []).map((exp, i) => (
-              <div key={i} className="expense-row">
-                <span className={`expense-tag tag-${exp.category === '交通' ? 'blue' : exp.category === '住宿' ? 'green' : exp.category === '餐饮' ? 'orange' : 'gray'}`}>
-                  {exp.category}
-                </span>
-                <span className="expense-desc">{exp.description}</span>
-                <span className="expense-amount">¥{exp.amount.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-              </div>
+              expensesEditing ? (
+                <div key={i} className="expense-row expense-row-new">
+                  <span>
+                    <Select
+                      size="small"
+                      value={exp.category}
+                      onChange={v => updateExpense(i, 'category', v)}
+                      options={EXPENSE_CATEGORIES.map(c => ({ label: c, value: c }))}
+                      className="expense-new-select"
+                      popupMatchSelectWidth={false}
+                      popupStyle={{ minWidth: 112 }}
+                    />
+                  </span>
+                  <span>
+                    <Input
+                      size="small"
+                      value={exp.description}
+                      onChange={e => updateExpense(i, 'description', e.target.value)}
+                      placeholder="描述"
+                    />
+                  </span>
+                  <span>
+                    <InputNumber
+                      size="small"
+                      value={exp.amount}
+                      onChange={v => updateExpense(i, 'amount', v || 0)}
+                      min={0}
+                      prefix="¥"
+                      className="expense-new-amount"
+                    />
+                  </span>
+                  <span className="expense-action">
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeExpense(i)} />
+                  </span>
+                </div>
+              ) : (
+                <div key={i} className="expense-row">
+                  <span className={`expense-tag tag-${exp.category === '交通' ? 'blue' : exp.category === '住宿' ? 'green' : exp.category === '餐饮' ? 'orange' : 'gray'}`}>
+                    {exp.category}
+                  </span>
+                  <span className="expense-desc">{exp.description}</span>
+                  <span className="expense-amount">
+                    {exp.currency && exp.currency !== 'CNY' ? `${exp.currency} ` : '¥'}
+                    {exp.amount.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )
             ))}
+            {expensesEditing && newExpense && (
+              <div className="expense-row expense-row-new">
+                <span>
+                  <Select
+                    size="small"
+                    value={newExpense.category}
+                    onChange={v => setNewExpense(prev => ({ ...prev, category: v }))}
+                    options={EXPENSE_CATEGORIES.map(c => ({ label: c, value: c }))}
+                    className="expense-new-select"
+                    popupMatchSelectWidth={false}
+                    popupStyle={{ minWidth: 112 }}
+                  />
+                </span>
+                <span>
+                  <Input
+                    size="small"
+                    value={newExpense.description}
+                    onChange={e => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="描述"
+                    onPressEnter={() => {
+                      if (newExpense.description.trim()) {
+                        addExpense({ ...newExpense })
+                        setNewExpense(null)
+                      }
+                    }}
+                  />
+                </span>
+                <span>
+                  <InputNumber
+                    size="small"
+                    value={newExpense.amount}
+                    onChange={v => setNewExpense(prev => ({ ...prev, amount: v || 0 }))}
+                    min={0}
+                    prefix="¥"
+                    className="expense-new-amount"
+                  />
+                </span>
+                <span className="expense-action">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CheckOutlined />}
+                    className="expense-confirm-btn"
+                    onClick={() => {
+                      if (newExpense.description.trim()) {
+                        addExpense({ ...newExpense })
+                        setNewExpense(null)
+                      }
+                    }}
+                  />
+                </span>
+              </div>
+            )}
             <div className="expense-total">
               <span>合计</span>
               <span></span>
-              <span>¥{(form.expenses || []).reduce((s, e) => s + e.amount, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>¥{(form.expenses || []).filter(e => !e.currency || e.currency === 'CNY').reduce((s, e) => s + e.amount, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {expensesEditing && <span></span>}
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          !expensesEditing && <div className="f-empty" style={{ textAlign: 'center', padding: '16px 0' }}>暂无费用记录</div>
+        )}
+        {expensesEditing && !newExpense && (
+          <div
+            className="expense-add-row"
+            onClick={() => setNewExpense({ category: '其他', description: '', amount: 0, currency: 'CNY', date: form.start_date || '' })}
+          >
+            <PlusOutlined /> 添加费用
+          </div>
+        )}
+      </div>
     </div>
   )
 }

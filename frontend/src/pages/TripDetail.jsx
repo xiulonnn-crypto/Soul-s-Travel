@@ -40,6 +40,7 @@ function DayBlock({ day }) {
 
 function ExpenseDetail({ expenses = [], travelerCount = 1 }) {
   const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date))
+  const CURR_SYMBOL = { CNY: '¥', USD: '$', EUR: '€', JPY: '¥', KRW: '₩', HKD: 'HK$', SGD: 'S$', THB: '฿' }
   return (
     <div className="expense-detail-tab">
       <div className="expense-items-list">
@@ -53,7 +54,7 @@ function ExpenseDetail({ expenses = [], travelerCount = 1 }) {
               <div className="edi-date">{e.date}</div>
             </div>
             <div className="edi-cat" style={{ color: CAT_COLORS[e.category] || '#8e99a4' }}>{e.category}</div>
-            <div className="edi-amount">¥{e.amount.toLocaleString()}</div>
+            <div className="edi-amount">{CURR_SYMBOL[e.currency] || e.currency || '¥'}{e.amount.toLocaleString()}</div>
           </div>
         ))}
       </div>

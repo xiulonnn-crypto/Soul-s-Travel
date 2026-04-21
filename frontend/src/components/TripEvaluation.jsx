@@ -50,7 +50,9 @@ function DimensionCard({ dimKey, dim }) {
       {dim.tags && dim.tags.length > 0 && (
         <div className="dim-tags">
           {dim.tags.map((t, i) => (
-            <span key={i} className={`eval-tag tag-${t.type}`}>{t.type === 'positive' ? '✓' : '⚠'} {t.text}</span>
+            <span key={i} className={`eval-tag tag-${t.type}`}>
+              {t.type === 'positive' ? '✓' : t.type === 'info' ? 'ℹ' : '⚠'} {t.text}
+            </span>
           ))}
         </div>
       )}
@@ -98,7 +100,9 @@ function CityCard({ city, index, legs }) {
       {city.tags && city.tags.length > 0 && (
         <div className="dim-tags">
           {city.tags.map((t, i) => (
-            <span key={i} className={`eval-tag tag-${t.type}`}>{t.type === 'positive' ? '✓' : '⚠'} {t.text}</span>
+            <span key={i} className={`eval-tag tag-${t.type}`}>
+              {t.type === 'positive' ? '✓' : t.type === 'info' ? 'ℹ' : '⚠'} {t.text}
+            </span>
           ))}
         </div>
       )}
@@ -179,7 +183,9 @@ export default function TripEvaluation({ tripId, trip }) {
           <div className="eval-hero-title">{ev.summary}</div>
           <Stars score={data.overall_score} />
           <div className="eval-hero-sub">
-            综合评分 {data.overall_score} 分 · 生成于 {data.created_at?.slice(0, 10)}
+            综合评分 {data.overall_score} 分
+            {ev.profile_context?.tier_label && <> · 消费层级: {ev.profile_context.tier_label}</>}
+            {' · '}生成于 {data.created_at?.slice(0, 10)}
           </div>
         </div>
         <Button

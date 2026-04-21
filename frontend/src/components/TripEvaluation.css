@@ -34,6 +34,7 @@
 .eval-tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; }
 .tag-positive { background: #dcfce7; color: #16a34a; }
 .tag-warning { background: #fef9c3; color: #ca8a04; }
+.tag-info { background: #e8f4fc; color: #0099ff; }
 
 /* 城市评价 */
 .eval-section-title { font-size: 15px; font-weight: 700; margin: 0 0 16px; }
