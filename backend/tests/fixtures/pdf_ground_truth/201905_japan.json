@@ -1,0 +1,61 @@
+{
+  "pdf_filename": "201905日本.pdf",
+  "description": "SexySouL 2019-04-27 日本 8 天 / 1 国 / 4 城",
+  "trip": {
+    "title_contains": "日本",
+    "start_date": "2019-04-27",
+    "end_date": "2019-05-04",
+    "day_count": 8
+  },
+  "legs": [
+    {"city": "东京", "country": "日本", "day_count": 3},
+    {"city": "京都", "country": "日本", "day_count": 1},
+    {"city": "奈良", "country": "日本", "day_count": 1},
+    {"city": "大阪", "country": "日本", "day_count": 3}
+  ],
+  "expenses": {
+    "total_cny": 11768.00,
+    "count": 9,
+    "per_day_cny": {
+      "2019-04-27": 3638.00,
+      "2019-04-28": 1050.00,
+      "2019-04-29": 1050.00,
+      "2019-04-30": 800.00,
+      "2019-05-01": 539.00,
+      "2019-05-02": 705.50,
+      "2019-05-03": 705.50,
+      "2019-05-04": 3280.00
+    }
+  },
+  "required_attractions": [
+    "新宿三丁目歌舞伎町",
+    "秋叶原",
+    "浅草寺",
+    "银座",
+    "东京塔",
+    "一兰拉面",
+    "东京迪士尼度假区",
+    "原宿竹下通",
+    "明治神宫",
+    "花见小路",
+    "二年坂和三年坂",
+    "八坂神社",
+    "石塀小路",
+    "哲学之道",
+    "奈良公园",
+    "Hep Five摩天轮",
+    "大阪城公园",
+    "大阪城天守阁",
+    "黑门市场",
+    "心斋桥",
+    "道顿堀",
+    "蟹道乐"
+  ],
+  "required_accommodations": [
+    "东京田町",
+    "月沈原",
+    "樱花酒店",
+    "大阪圆顶球场无限酒店"
+  ],
+  "notes": "Day 1 = 东京 (arrival day, counts as 东京 leg). Day 4 includes 浅草寺 as PDF author listed it on the Tokyo→Kyoto transit day."
+}

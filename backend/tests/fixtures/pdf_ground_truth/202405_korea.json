@@ -1,0 +1,40 @@
+{
+  "pdf_filename": "202405 韩国.pdf",
+  "description": "SexySouL 2024-05-01 韩国 5 天 / 1 国 / 2 城（近期已修 day marker bug）",
+  "trip": {
+    "title_contains": "韩国",
+    "start_date": "2024-05-01",
+    "end_date": "2024-05-05",
+    "day_count": 5
+  },
+  "legs": [
+    {"city": "釜山", "country": "韩国", "day_count": 4},
+    {"city": "庆州", "country": "韩国", "day_count": 1}
+  ],
+  "expenses": {
+    "total_cny": 10511.36,
+    "count": 8,
+    "per_day_cny": {
+      "2024-05-01": 5470.00,
+      "2024-05-02": 1417.36,
+      "2024-05-03": 1808.00,
+      "2024-05-04": 1816.00
+    }
+  },
+  "required_attractions": [
+    "海云台传统市场",
+    "釜山青沙浦",
+    "南川洞樱花街",
+    "广安里海水浴场",
+    "甘川文化村",
+    "松岛海上缆车",
+    "广安大桥",
+    "游艇",
+    "海东龙宫寺",
+    "庆州普门旅游区"
+  ],
+  "required_accommodations": [
+    "釜山万枫酒店",
+    "釜山朝鲜威斯汀酒店"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "pdf_filename": "202305斯里兰卡.pdf",
+  "description": "SexySouL 2023-05-08 斯里兰卡 8 天 / 1 国 / 7 城（司导游，概览不列每日景点）",
+  "trip": {
+    "title_contains": "斯里兰卡",
+    "start_date": "2023-05-08",
+    "end_date": "2023-05-15",
+    "day_count": 8
+  },
+  "legs": [
+    {"city": "尼甘布", "country": "斯里兰卡", "day_count": 1},
+    {"city": "丹布勒", "country": "斯里兰卡", "day_count": 1},
+    {"city": "康堤", "country": "斯里兰卡", "day_count": 1},
+    {"city": "努瓦勒埃利耶", "country": "斯里兰卡", "day_count": 1},
+    {"city": "埃勒", "country": "斯里兰卡", "day_count": 1},
+    {"city": "加勒", "country": "斯里兰卡", "day_count": 2},
+    {"city": "科伦坡", "country": "斯里兰卡", "day_count": 1}
+  ],
+  "expenses": {
+    "total_cny": 20280.00,
+    "count": 3,
+    "per_day_cny": {
+      "2023-05-08": 16457.00,
+      "2023-05-15": 3823.00
+    }
+  },
+  "required_attractions": [],
+  "required_accommodations": [],
+  "notes": "This itinerary has no per-day attractions in the overview (driver-led tour). All day.activities lists should be empty or nearly-empty."
+}

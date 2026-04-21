@@ -1,0 +1,37 @@
+{
+  "pdf_filename": "202402马来西亚.pdf",
+  "description": "SexySouL 2024-02-12 马来西亚 7 天 / 2 国 / 3 城",
+  "trip": {
+    "title_contains": "马来西亚",
+    "start_date": "2024-02-12",
+    "end_date": "2024-02-18",
+    "day_count": 7
+  },
+  "legs": [
+    {"city": "吉隆坡", "country": "马来西亚", "day_count": 2},
+    {"city": "兰卡威", "country": "马来西亚", "day_count": 2},
+    {"city": "槟城", "country": "马来西亚", "day_count": 3}
+  ],
+  "expenses": {
+    "total_cny": 22049.22,
+    "count": 11,
+    "per_day_cny": {
+      "2024-02-12": 11866.43,
+      "2024-02-13": 1838.51,
+      "2024-02-14": 4111.33,
+      "2024-02-15": 2216.00,
+      "2024-02-16": 834.22,
+      "2024-02-17": 1182.73
+    }
+  },
+  "required_attractions": [
+    "旧国家皇宫",
+    "吉隆坡国际机场"
+  ],
+  "required_accommodations": [
+    "吉隆坡w酒店",
+    "兰卡威雅乐轩酒店",
+    "槟城万怡酒店"
+  ],
+  "notes": "Day 1 is a red-eye flight 北京→吉隆坡 23:55→04:10+1; overview lists no hotel on day 1 (arrive after midnight). Days 3-5 overview has truncated numbered markers ('1. 2. 3.') with names missing — expected to produce sparse activities."
+}

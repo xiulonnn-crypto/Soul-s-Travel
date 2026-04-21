@@ -3,7 +3,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 from app import app
-from database import Base, engine
 
 TRIP = {
     "title": "Share Test", "start_date": "2024-01-01", "end_date": "2024-01-03",
@@ -13,8 +12,6 @@ TRIP = {
 
 @pytest.fixture
 def client():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c
