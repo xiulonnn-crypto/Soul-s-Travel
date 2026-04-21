@@ -4,19 +4,30 @@
 import json
 import os
 import math
+import re
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
 _benchmarks_cache = None
+_country_defaults_cache = None
 
 
 def _load_benchmarks():
-    global _benchmarks_cache
+    global _benchmarks_cache, _country_defaults_cache
     if _benchmarks_cache is None:
         path = os.path.join(DATA_DIR, "city_benchmarks.json")
         with open(path, "r", encoding="utf-8") as f:
-            _benchmarks_cache = json.load(f)
+            raw = json.load(f)
+        _country_defaults_cache = raw.pop("_country_defaults", {})
+        _benchmarks_cache = raw
     return _benchmarks_cache
+
+
+def _get_country_default(country):
+    """根据国家名获取回退基准。"""
+    if _country_defaults_cache is None:
+        _load_benchmarks()
+    return _country_defaults_cache.get(country)
 
 
 def _clamp(v, lo=0, hi=100):
@@ -24,12 +35,217 @@ def _clamp(v, lo=0, hi=100):
 
 
 # ---------------------------------------------------------------------------
+# 0. 消费层级 & 季节基准调整
+# ---------------------------------------------------------------------------
+
+_REFERENCE_PER_PERSON_BUDGET = 35000  # 人均年旅行预算基准 (CNY)
+
+# 目的地消费升级锚点（约泰国/土耳其中档水平），用于「穷国富游 / 富国穷游」系数
+_DEST_COST_ANCHOR = 800
+
+
+def _destination_upgrade_coefficient(base_daily_cost):
+    """穷国富游系数：低成本目的地旅客实际消费相对基准偏移更大。"""
+    if base_daily_cost <= 0:
+        return 1.0
+    ratio = base_daily_cost / _DEST_COST_ANCHOR
+    if ratio >= 1.0:
+        return max(0.85, 1.0 - (ratio - 1.0) * 0.1)
+    return min(1.5, 1.0 + (1.0 - ratio) * 0.6)
+
+
+def _compute_tier_multiplier(profile, traveler_count):
+    """根据用户年度旅行预算和出行人数计算消费层级乘数。
+    基准: 人均年旅行预算 35,000 → 乘数 1.0 (舒适型)。
+    """
+    if not profile or not profile.get("annual_travel_budget"):
+        return 1.0
+    budget = profile["annual_travel_budget"]
+    per_person = budget / max(traveler_count, 1)
+    ratio = per_person / _REFERENCE_PER_PERSON_BUDGET
+    return max(0.5, min(2.5, ratio ** 0.55))
+
+
+def _tier_label(multiplier):
+    if multiplier < 0.7:
+        return "经济型"
+    if multiplier < 0.9:
+        return "实惠型"
+    if multiplier < 1.15:
+        return "舒适型"
+    if multiplier < 1.5:
+        return "品质型"
+    if multiplier < 2.0:
+        return "高端型"
+    return "奢华型"
+
+
+def _compute_season_multiplier(city_bm, months):
+    """根据城市季节数据和实际出行月份返回 (价格乘数, 季节标签)。"""
+    seasons = city_bm.get("seasons")
+    if not seasons or not months:
+        return 1.0, "平季"
+    peak_set = set(seasons.get("peak", {}).get("months", []))
+    peak_mult = seasons.get("peak", {}).get("multiplier", 1.25)
+    off_set = set(seasons.get("off_peak", {}).get("months", []))
+    off_mult = seasons.get("off_peak", {}).get("multiplier", 0.80)
+
+    total = len(months)
+    peak_n = sum(1 for m in months if m in peak_set)
+    off_n = sum(1 for m in months if m in off_set)
+    shoulder_n = total - peak_n - off_n
+
+    weighted = (peak_n * peak_mult + off_n * off_mult + shoulder_n * 1.0) / total
+    if peak_n > total / 2:
+        label = "旺季"
+    elif off_n > total / 2:
+        label = "淡季"
+    else:
+        label = "平季"
+    return round(weighted, 3), label
+
+
+def _extract_months_from_leg(leg):
+    months = []
+    for day in leg.get("days", []):
+        date_str = day.get("date", "")
+        if date_str:
+            try:
+                months.append(int(date_str.split("-")[1]))
+            except (IndexError, ValueError):
+                pass
+    return months
+
+
+def _resolve_city_benchmark(raw_benchmarks, city, country=""):
+    """三级查找：城市基准 → 国家回退 → None。"""
+    if city in raw_benchmarks:
+        return raw_benchmarks[city]
+    cd = _get_country_default(country)
+    if cd:
+        return cd
+    return None
+
+
+def _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs):
+    """构建经消费层级 + 季节调整后的基准数据副本。"""
+    adjusted = {}
+    for leg in legs:
+        city = leg.get("city", "")
+        if city in adjusted:
+            continue
+        country = leg.get("country", "")
+        bm = _resolve_city_benchmark(raw_benchmarks, city, country)
+        if bm is None:
+            continue
+        months = _extract_months_from_leg(leg)
+        season_mult, season_label = _compute_season_multiplier(bm, months)
+        dest_coeff = _destination_upgrade_coefficient(bm["avg_daily_cost_cny"])
+        combined = tier_mult * season_mult * dest_coeff
+
+        adj = dict(bm)
+        adj["avg_daily_cost_cny"] = round(bm["avg_daily_cost_cny"] * combined)
+        adj["avg_hotel_price_cny"] = round(bm.get("avg_hotel_price_cny", 500) * combined)
+        adj["_season_label"] = season_label
+        adj["_season_multiplier"] = season_mult
+        adj["_destination_upgrade_coefficient"] = round(dest_coeff, 3)
+        adj["_original_daily_cost"] = bm["avg_daily_cost_cny"]
+        adj["_original_hotel_price"] = bm.get("avg_hotel_price_cny", 500)
+        adjusted[city] = adj
+
+    for city, bm in raw_benchmarks.items():
+        if city not in adjusted:
+            adjusted[city] = bm
+    return adjusted
+
+
+# ---------------------------------------------------------------------------
 # 1. 本地指标计算
 # ---------------------------------------------------------------------------
 
+_MAJOR_TRANSPORT_KW = re.compile(
+    r'机票|航班|[Ff]light|高铁|动车|火车票|长途', re.IGNORECASE)
+
+_INTERCITY_ROUTE_RE = re.compile(
+    r'[\u4e00-\u9fa5A-Za-z]{2,}(?:[到至]|\u2192|-\s*>)[\u4e00-\u9fa5A-Za-z]{2,}')
+
+_LOCAL_TRANSPORT_PREFIX = re.compile(
+    r'^(?:打车|叫车|骑车|坐车|搭车|乘车|出租|的士|地铁|公交|巴士|'
+    r'摩的|三轮|渡轮|缆车|索道|滴滴|[Gg]rab|[Uu]ber)')
+
+_LOCAL_PLACE_RE = re.compile(
+    r'机场|酒店|旅馆|民宿|市区|市中心|车站|码头|港口|'
+    r'景点|景区|餐厅|商场|饭店|宾馆')
+
+
+def _is_flight_expense(e):
+    """判断是否为城际/国际大交通，应排除出日均花费计算。"""
+    if e.get("category") != "交通":
+        return False
+    desc = (e.get("description") or "").strip()
+    if _MAJOR_TRANSPORT_KW.search(desc):
+        return True
+    if _LOCAL_TRANSPORT_PREFIX.match(desc):
+        return False
+    if _INTERCITY_ROUTE_RE.search(desc) and not _LOCAL_PLACE_RE.search(desc):
+        return True
+    return False
+
+
+def _is_transit_day(day):
+    """当天 transport 是否含城际/大交通（跨城日可游览容量低，不计入与纯游览日相同的期望）。"""
+    for t in day.get("transport", []):
+        if not isinstance(t, str):
+            continue
+        s = t.strip()
+        if _MAJOR_TRANSPORT_KW.search(s) or _INTERCITY_ROUTE_RE.search(s):
+            return True
+    return False
+
+
+def _count_transit_days(days):
+    return sum(1 for d in days if _is_transit_day(d))
+
+
+def _effective_days(num_days, transit_days):
+    """有效游览人日：跨城日按 0.5 天计。"""
+    if num_days <= 0:
+        return 0.1
+    return max(0.1, num_days - transit_days * 0.5)
+
+
+def _stay_ratio(effective_days, typical_stay_days):
+    typical = max(typical_stay_days or 3, 1)
+    return max(0.1, min(1.0, effective_days / typical))
+
+
+def _pace_day_score(count, low, high):
+    """单日活动数相对理想区间 [low, high] 的得分。"""
+    if low <= count <= high:
+        return 95.0
+    if count < low:
+        return max(50.0, 95.0 - (low - count) * 12.0)
+    return max(45.0, 95.0 - (count - high) * 8.0)
+
+
+def _ideal_activity_range_for_day(is_transit, must_see, typical_stay_days):
+    """游览日按城市景点密度调整理想区间；交通日期望活动较少。"""
+    if is_transit:
+        return 1.0, 3.0
+    typical = max(typical_stay_days or 3, 1)
+    if must_see:
+        spot_density = len(must_see) / typical
+        ideal_center = max(2.0, min(4.5, spot_density + 0.5))
+    else:
+        ideal_center = 2.5
+    return ideal_center - 1.0, ideal_center + 1.5
+
+
 def _compute_cost_metrics(trip, legs, expenses, benchmarks):
-    """花费性价比评分"""
+    """花费性价比评分（排除大交通机票）"""
     total_expense = sum(e.get("amount", 0) for e in expenses)
+    flight_cost = sum(e.get("amount", 0) for e in expenses if _is_flight_expense(e))
+    ground_expense = total_expense - flight_cost
     total_days = max((len(set(e.get("date") for e in expenses)) or 1), 1)
     traveler_count = max(trip.get("traveler_count", 1), 1)
 
@@ -42,7 +258,7 @@ def _compute_cost_metrics(trip, legs, expenses, benchmarks):
                 all_dates.append(day.get("date"))
         total_days = max(len(set(all_dates)), total_days, 1)
 
-    per_person_per_day = total_expense / traveler_count / total_days if total_days else 0
+    per_person_per_day = ground_expense / traveler_count / total_days if total_days else 0
 
     # 用城市基准加权平均作为参考
     market_avg = 0
@@ -53,7 +269,7 @@ def _compute_cost_metrics(trip, legs, expenses, benchmarks):
         if bm:
             market_avg += bm["avg_daily_cost_cny"]
             city_count += 1
-    market_avg = market_avg / city_count if city_count else 800
+    market_avg = market_avg / city_count if city_count else 1000
 
     if market_avg <= 0:
         ratio = 1.0
@@ -78,71 +294,103 @@ def _compute_cost_metrics(trip, legs, expenses, benchmarks):
         "market_avg": round(market_avg),
         "savings_pct": savings_pct,
         "total_expense": round(total_expense),
+        "flight_cost": round(flight_cost),
     }
 
 
-def _compute_pace_metrics(legs):
-    """行程节奏评分"""
+def _compute_pace_metrics(legs, benchmarks=None):
+    """行程节奏评分：按日对照城市理想区间，区分交通日；方差仅计非交通日。"""
+    benchmarks = benchmarks or {}
+    daily_scores = []
     daily_counts = []
+    sightseeing_counts = []
+    transit_day_count = 0
     busiest_day = None
     busiest_count = 0
 
     for leg in legs:
+        city = leg.get("city", "")
+        bm = benchmarks.get(city) or {}
+        must_see = bm.get("must_see", [])
+        typical = bm.get("typical_stay_days", 3)
+
         for day in leg.get("days", []):
             activities = day.get("activities", [])
             count = len(activities)
             daily_counts.append(count)
+            is_transit = _is_transit_day(day)
+            if is_transit:
+                transit_day_count += 1
+            else:
+                sightseeing_counts.append(count)
+
+            lo, hi = _ideal_activity_range_for_day(is_transit, must_see, typical)
+            daily_scores.append(_pace_day_score(count, lo, hi))
+
             if count > busiest_count:
                 busiest_count = count
                 busiest_day = day.get("day_number")
 
-    if not daily_counts:
-        return {"score": 70, "avg_activities": 0, "busiest_day": None, "busiest_count": 0}
+    if not daily_scores:
+        return {
+            "score": 70,
+            "avg_activities": 0,
+            "busiest_day": None,
+            "busiest_count": 0,
+            "transit_day_count": 0,
+        }
 
-    avg = sum(daily_counts) / len(daily_counts)
+    base_score = sum(daily_scores) / len(daily_scores)
 
-    # 2-3 activities/day is optimal → 95, <1 or >5 is bad
-    if 2 <= avg <= 3:
-        base_score = 95
-    elif 1.5 <= avg < 2:
-        base_score = 85
-    elif 3 < avg <= 4:
-        base_score = 82
-    elif 1 <= avg < 1.5:
-        base_score = 75
-    elif 4 < avg <= 5:
-        base_score = 70
-    else:
-        base_score = 55
-
-    # 日间方差惩罚: 忽高忽低扣分
-    if len(daily_counts) > 1:
-        variance = sum((c - avg) ** 2 for c in daily_counts) / len(daily_counts)
-        penalty = min(15, variance * 3)
+    # 仅非交通日的活动数方差惩罚（避免跨城日拉低均值导致误判）
+    if len(sightseeing_counts) > 1:
+        mean_sc = sum(sightseeing_counts) / len(sightseeing_counts)
+        variance = sum((c - mean_sc) ** 2 for c in sightseeing_counts) / len(sightseeing_counts)
+        penalty = min(10, variance * 2)
         base_score -= penalty
+
+    if transit_day_count > 0 and sightseeing_counts:
+        avg_display = sum(sightseeing_counts) / len(sightseeing_counts)
+    else:
+        avg_display = sum(daily_counts) / len(daily_counts)
 
     return {
         "score": _clamp(base_score),
-        "avg_activities": round(avg, 1),
+        "avg_activities": round(avg_display, 1),
         "busiest_day": busiest_day,
         "busiest_count": busiest_count,
+        "transit_day_count": transit_day_count,
     }
+
+
+def _day_requires_accommodation(day):
+    """当日是否需要本地住宿记录（纳入覆盖率分母）。
+
+    交通日 + 未记录住宿 视为合理在途过夜：
+      - 返程日（行程最后一日含跨城大交通）
+      - 凌晨/通宵航班日（在飞机上过夜）
+    其他情形（含交通日但已填住宿，或非交通日）均应计入分母。
+    """
+    if day.get("accommodation"):
+        return True
+    return not _is_transit_day(day)
 
 
 def _compute_accommodation_metrics(legs, expenses, benchmarks):
     """住宿品质评分"""
     has_accommodation = 0
-    total_days = 0
+    required_days = 0
     hotel_names = []
 
     for leg in legs:
         for day in leg.get("days", []):
-            total_days += 1
             if day.get("accommodation"):
                 has_accommodation += 1
                 hotel_names.append(day["accommodation"])
+            if _day_requires_accommodation(day):
+                required_days += 1
 
-    coverage = has_accommodation / total_days if total_days else 0
+    coverage = has_accommodation / required_days if required_days else 1.0
 
     hotel_expense = sum(e["amount"] for e in expenses if e.get("category") == "住宿")
     nights = max(has_accommodation, 1)
@@ -154,9 +402,9 @@ def _compute_accommodation_metrics(legs, expenses, benchmarks):
     for leg in legs:
         bm = benchmarks.get(leg.get("city", ""))
         if bm:
-            market_hotel_avg += bm.get("avg_hotel_price_cny", 300)
+            market_hotel_avg += bm.get("avg_hotel_price_cny", 500)
             city_count += 1
-    market_hotel_avg = market_hotel_avg / city_count if city_count else 300
+    market_hotel_avg = market_hotel_avg / city_count if city_count else 500
 
     # 覆盖率分 (有住宿记录) 60分权重 + 价格合理性 40分权重
     coverage_score = min(100, coverage * 100)
@@ -220,20 +468,28 @@ def _compute_transport_metrics(legs):
 
 
 def _compute_attractions_metrics(legs, benchmarks):
-    """景点覆盖评分"""
+    """景点覆盖评分：按停留人日相对典型停留调整期望，跨城日折减有效天；城市间按有效天加权。"""
     city_results = []
+    weighted_cov = 0.0
+    weighted_raw = 0.0
+    total_weight = 0.0
 
     for leg in legs:
         city = leg.get("city", "")
         bm = benchmarks.get(city)
-        must_see = bm["must_see"] if bm else []
+        must_see = bm.get("must_see", []) if bm else []
+        days = leg.get("days", [])
+        num_days = max(len(days), 1)
+        typical = bm.get("typical_stay_days", 3) if bm else 3
+        transit_days = _count_transit_days(days)
+        effective_days = _effective_days(num_days, transit_days)
+        ratio = _stay_ratio(effective_days, typical)
 
         visited = set()
-        for day in leg.get("days", []):
+        for day in days:
             for act in day.get("activities", []):
                 visited.add(act)
 
-        # 模糊匹配: 活动名包含景点名或反之
         covered = []
         missed = []
         for spot in must_see:
@@ -243,25 +499,50 @@ def _compute_attractions_metrics(legs, benchmarks):
             else:
                 missed.append(spot)
 
-        coverage_pct = len(covered) / len(must_see) * 100 if must_see else 100
+        if must_see:
+            raw_ratio = len(covered) / len(must_see)
+            raw_pct = raw_ratio * 100
+            adjusted_ratio = min(1.0, raw_ratio / ratio) if ratio > 0 else 0.0
+            adj_pct = adjusted_ratio * 100
+        else:
+            raw_pct = 100.0
+            adj_pct = 100.0
+
+        w = effective_days
+        weighted_cov += adj_pct * w
+        weighted_raw += raw_pct * w
+        total_weight += w
+
         city_results.append({
             "city": city,
             "covered": covered,
             "missed": missed,
-            "coverage_pct": round(coverage_pct),
+            "coverage_pct": round(adj_pct),
+            "raw_coverage_pct": round(raw_pct),
             "total_visited": len(visited),
+            "effective_days": round(effective_days, 1),
+            "typical_stay": typical,
+            "stay_ratio": round(ratio, 2),
+            "transit_days": transit_days,
         })
 
     if not city_results:
-        return {"score": 70, "cities": [], "overall_coverage": 0}
+        return {"score": 70, "cities": [], "overall_coverage": 0, "raw_overall_coverage": 0}
 
-    overall_coverage = sum(c["coverage_pct"] for c in city_results) / len(city_results)
+    if total_weight <= 0:
+        overall_coverage = 0
+        raw_overall = 0
+    else:
+        overall_coverage = weighted_cov / total_weight
+        raw_overall = weighted_raw / total_weight
+
     score = min(100, overall_coverage * 0.9 + 10)
 
     return {
         "score": _clamp(score),
         "cities": city_results,
         "overall_coverage": round(overall_coverage),
+        "raw_overall_coverage": round(raw_overall),
     }
 
 
@@ -281,31 +562,59 @@ def _evaluate_city(leg, expenses, benchmarks):
     traveler_count = 1  # leg 级别无人数信息, 后面由外层补正
 
     activities_count = sum(len(d.get("activities", [])) for d in days)
-    avg_activities = activities_count / num_days
 
     # 花费子分
-    market_daily = bm.get("avg_daily_cost_cny", 800)
+    market_daily = bm.get("avg_daily_cost_cny", 1000)
     daily_cost = total_cost / num_days if num_days else 0
     cost_ratio = daily_cost / market_daily if market_daily else 1
     cost_sub = _clamp(90 - max(0, (cost_ratio - 0.8)) * 40)
 
-    # 景点子分
+    # 景点子分（按停留人日相对典型停留调整期望）
     must_see = bm.get("must_see", [])
+    typical_stay = bm.get("typical_stay_days", 3)
+    transit_days = _count_transit_days(days)
+    effective_days = _effective_days(num_days, transit_days)
+    stay_ratio_val = _stay_ratio(effective_days, typical_stay)
+
     visited = set()
     for d in days:
         visited.update(d.get("activities", []))
     covered = [s for s in must_see if any(s in v or v in s for v in visited)]
     missed = [s for s in must_see if s not in covered]
-    spot_pct = len(covered) / len(must_see) * 100 if must_see else 100
-    spot_sub = _clamp(spot_pct * 0.9 + 10)
-
-    # 节奏子分
-    if 2 <= avg_activities <= 3:
-        pace_sub = 92
-    elif avg_activities < 2:
-        pace_sub = 78
+    if must_see:
+        raw_ratio = len(covered) / len(must_see)
+        spot_pct_raw = raw_ratio * 100
+        adjusted_ratio = min(1.0, raw_ratio / stay_ratio_val) if stay_ratio_val > 0 else 0.0
+        spot_pct = adjusted_ratio * 100
     else:
-        pace_sub = max(60, 92 - (avg_activities - 3) * 10)
+        spot_pct_raw = 100.0
+        spot_pct = 100.0
+    spot_sub = _clamp(min(100, spot_pct * 0.9 + 10))
+
+    # 节奏子分（与整体维度一致的按日模型）
+    sightseeing_counts = []
+    if days:
+        daily_scores = []
+        for d in days:
+            c = len(d.get("activities", []))
+            is_t = _is_transit_day(d)
+            lo, hi = _ideal_activity_range_for_day(is_t, must_see, typical_stay)
+            daily_scores.append(_pace_day_score(c, lo, hi))
+            if not is_t:
+                sightseeing_counts.append(c)
+        pace_mean = sum(daily_scores) / len(daily_scores)
+        if len(sightseeing_counts) > 1:
+            msc = sum(sightseeing_counts) / len(sightseeing_counts)
+            var = sum((x - msc) ** 2 for x in sightseeing_counts) / len(sightseeing_counts)
+            pace_mean -= min(10, var * 2)
+        pace_sub = _clamp(pace_mean)
+    else:
+        pace_sub = 92
+
+    if sightseeing_counts:
+        avg_activities = sum(sightseeing_counts) / len(sightseeing_counts)
+    else:
+        avg_activities = activities_count / num_days if num_days else 0
 
     # 停留天数子分
     typical = bm.get("typical_stay_days", 3)
@@ -326,7 +635,7 @@ def _evaluate_city(leg, expenses, benchmarks):
         tags.append({"type": "warning", "text": "花费偏高"})
     if spot_pct >= 80:
         tags.append({"type": "positive", "text": "景点全面"})
-    elif spot_pct < 50:
+    elif spot_pct < 80:
         tags.append({"type": "warning", "text": "景点覆盖不足"})
     if avg_activities > 4:
         tags.append({"type": "warning", "text": "节奏偏紧"})
@@ -351,6 +660,7 @@ def _evaluate_city(leg, expenses, benchmarks):
             "daily_cost": round(daily_cost),
             "market_daily": market_daily,
             "spot_coverage": round(spot_pct),
+            "spot_coverage_raw": round(spot_pct_raw),
             "avg_activities": round(avg_activities, 1),
         },
     }
@@ -372,7 +682,8 @@ def _score_label(score):
     return "较差"
 
 
-def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs, profile=None):
+def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs,
+                      profile=None, tier_label=""):
     """一句话总评"""
     cities = [leg.get("city", "") for leg in legs if leg.get("city")]
     dest = "、".join(cities[:3])
@@ -396,40 +707,50 @@ def _generate_summary(overall_score, cost_m, pace_m, attractions_m, legs, profil
         quality = "有提升空间的"
 
     prefix = ""
+    if tier_label:
+        prefix = f"以{tier_label}消费水平衡量，这是一次"
     visited = profile.get("visited_countries_cities") if profile else None
     if visited and isinstance(visited, dict) and visited:
         n_countries = len(visited)
-        n_cities = sum(len(c) for c in visited.values() if isinstance(c, dict))
+        n_cities = sum(
+            len(trip.get("cities", []))
+            for trips in visited.values() if isinstance(trips, list)
+            for trip in trips if isinstance(trip, dict)
+        )
         if n_countries > 0 and n_cities > 0:
-            prefix = f"作为已探访 {n_countries} 国 {n_cities} 城的旅行者，这是一次"
+            prefix = f"作为已探访 {n_countries} 国 {n_cities} 城的{tier_label}旅行者，这是一次"
 
     if prefix:
         return f"{prefix}{cost_tag}{quality}{dest}之旅"
     return f"{cost_tag}{quality}{dest}之旅"
 
 
-def _generate_cost_text(m):
+def _generate_cost_text(m, tier_label=""):
     ppd = m["per_person_per_day"]
     market = m["market_avg"]
     savings = m["savings_pct"]
+    flight_cost = m.get("flight_cost", 0)
+    ref = f"{tier_label}参考水准" if tier_label else "市场参考水准"
+
+    flight_note = f"（不含大交通 ¥{flight_cost:,}）" if flight_cost > 0 else ""
 
     if savings > 0:
-        return (f"本次行程人均日花费 ¥{ppd}，低于该目的地市场均价 ¥{market} "
+        return (f"本次行程人均日花费 ¥{ppd}{flight_note}，低于{ref} ¥{market} "
                 f"约 {savings}%，花费控制出色。总花费 ¥{m['total_expense']:,}。")
     elif savings > -15:
-        return (f"本次行程人均日花费 ¥{ppd}，与市场均价 ¥{market} 基本持平，"
+        return (f"本次行程人均日花费 ¥{ppd}{flight_note}，与{ref} ¥{market} 基本持平，"
                 f"花费合理。总花费 ¥{m['total_expense']:,}。")
     else:
-        return (f"本次行程人均日花费 ¥{ppd}，高于市场均价 ¥{market} "
+        return (f"本次行程人均日花费 ¥{ppd}{flight_note}，高于{ref} ¥{market} "
                 f"约 {abs(savings)}%。总花费 ¥{m['total_expense']:,}，建议下次可优化住宿或交通开支。")
 
 
 def _generate_cost_tags(m):
     tags = []
     if m["savings_pct"] > 10:
-        tags.append({"type": "positive", "text": "低于市场均价"})
+        tags.append({"type": "positive", "text": "低于参考水准"})
     elif m["savings_pct"] < -15:
-        tags.append({"type": "warning", "text": "高于市场均价"})
+        tags.append({"type": "warning", "text": "高于参考水准"})
     return tags
 
 
@@ -437,8 +758,16 @@ def _generate_pace_text(m):
     avg = m["avg_activities"]
     busiest = m["busiest_day"]
     busiest_count = m["busiest_count"]
+    transit_n = m.get("transit_day_count", 0)
 
-    parts = [f"平均每天安排 {avg} 个活动"]
+    if transit_n > 0:
+        parts = [
+            f"含 {transit_n} 个跨城交通日",
+            f"非交通日平均每天安排 {avg} 个活动",
+        ]
+    else:
+        parts = [f"平均每天安排 {avg} 个活动"]
+
     if 2 <= avg <= 3:
         parts.append("节奏适中，松紧得当")
     elif avg > 4:
@@ -456,16 +785,21 @@ def _generate_pace_text(m):
 
 def _generate_pace_tags(m):
     tags = []
-    if 2 <= m["avg_activities"] <= 3:
+    transit_n = m.get("transit_day_count", 0)
+    if transit_n >= 2:
+        tags.append({"type": "info", "text": f"含 {transit_n} 个交通日"})
+
+    avg = m["avg_activities"]
+    if 2 <= avg <= 3:
         tags.append({"type": "positive", "text": "节奏适中"})
-    elif m["avg_activities"] > 4:
+    elif avg > 4:
         tags.append({"type": "warning", "text": "部分天数偏紧"})
     if m["busiest_day"] and m["busiest_count"] > 4:
         tags.append({"type": "warning", "text": f"Day{m['busiest_day']} 偏满"})
     return tags
 
 
-def _generate_accommodation_text(m):
+def _generate_accommodation_text(m, tier_label=""):
     if m["coverage"] >= 90:
         cov_text = "住宿记录完整"
     elif m["coverage"] >= 60:
@@ -473,15 +807,16 @@ def _generate_accommodation_text(m):
     else:
         cov_text = "部分天数缺少住宿信息"
 
+    ref = f"{tier_label}参考价" if tier_label else "参考均价"
     if m["avg_nightly"] > 0:
         price_text = f"，平均每晚 ¥{m['avg_nightly']}"
         market = m["market_avg"]
         if m["avg_nightly"] < market * 0.8:
-            price_text += f"，低于市场均价 ¥{market}，性价比较高"
+            price_text += f"，低于{ref} ¥{market}，性价比较高"
         elif m["avg_nightly"] > market * 1.2:
-            price_text += f"，高于市场均价 ¥{market}"
+            price_text += f"，高于{ref} ¥{market}"
         else:
-            price_text += f"，与市场均价 ¥{market} 相当"
+            price_text += f"，与{ref} ¥{market} 相当"
     else:
         price_text = ""
 
@@ -524,12 +859,22 @@ def _generate_transport_tags(m):
 
 def _generate_attractions_text(m):
     cov = m["overall_coverage"]
+    raw = m.get("raw_overall_coverage")
     if cov >= 85:
-        return f"整体景点覆盖率 {cov}%，必去景点基本全面覆盖，行程安排充实。"
+        base = f"整体景点覆盖率 {cov}%（按停留天数调整），必去景点基本全面覆盖，行程安排充实。"
+        if raw is not None and raw < cov - 5:
+            base += f" 未调整前约 {raw}%。"
+        return base
     elif cov >= 60:
-        return f"整体景点覆盖率 {cov}%，大部分核心景点已包含，部分值得一去的地方有所遗漏。"
+        return (
+            f"整体景点覆盖率 {cov}%（按停留天数调整），大部分核心景点已包含；"
+            f"部分城市停留较短时覆盖有限，建议下次适当延长或聚焦必去清单。"
+        )
     else:
-        return f"整体景点覆盖率 {cov}%，较多必去景点未覆盖，建议下次重点补充。"
+        return (
+            f"整体景点覆盖率 {cov}%（按停留天数调整），相对典型停留仍有不少必去点未覆盖，"
+            f"建议下次重点补充或增加停留日。"
+        )
 
 
 def _generate_attractions_tags(m):
@@ -545,17 +890,20 @@ def _generate_attractions_tags(m):
 def _generate_city_text(city, num_days, daily_cost, market_daily,
                         covered, missed, avg_activities, bm):
     """单城市评价文字"""
+    season = bm.get("_season_label", "")
+    season_tag = f"（{season}）" if season and season != "平季" else ""
+
     parts = []
     parts.append(f"{city}停留 {num_days} 天")
 
     if daily_cost > 0 and market_daily > 0:
         ratio = daily_cost / market_daily
         if ratio < 0.85:
-            parts.append(f"日均花费 ¥{round(daily_cost)}，显著低于市场均价")
+            parts.append(f"日均花费 ¥{round(daily_cost)}，低于参考水准 ¥{round(market_daily)}{season_tag}")
         elif ratio > 1.15:
-            parts.append(f"日均花费 ¥{round(daily_cost)}，略高于市场水平")
+            parts.append(f"日均花费 ¥{round(daily_cost)}，高于参考水准 ¥{round(market_daily)}{season_tag}")
         else:
-            parts.append(f"日均花费 ¥{round(daily_cost)}，与市场水平持平")
+            parts.append(f"日均花费 ¥{round(daily_cost)}，与参考水准 ¥{round(market_daily)} 持平{season_tag}")
 
     if covered:
         parts.append(f"已覆盖{', '.join(covered[:4])}等{'核心' if len(covered) >= 3 else ''}景点")
@@ -577,9 +925,11 @@ def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks,
     # 合并 profile 中历史访问过的城市
     visited = profile.get("visited_countries_cities") if profile else None
     if visited and isinstance(visited, dict):
-        for country_cities in visited.values():
-            if isinstance(country_cities, dict):
-                visited_cities.update(country_cities.keys())
+        for trips in visited.values():
+            if isinstance(trips, list):
+                for trip in trips:
+                    if isinstance(trip, dict):
+                        visited_cities.update(trip.get("cities", []))
 
     # 基于景点遗漏的建议
     for city_data in attractions_m.get("cities", []):
@@ -606,10 +956,23 @@ def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks,
     NEARBY_RECS = {
         "曼谷": [("芭提雅", "距离曼谷仅 2 小时车程，适合海滩度假"), ("华欣", "皇室度假胜地，距曼谷 3 小时")],
         "清迈": [("拜县", "清迈周边的文艺小城"), ("清莱", "白庙和蓝庙值得一游")],
-        "东京": [("箱根", "温泉和富士山景观"), ("�的仓", "经典的古都一日游")],
+        "吉隆坡": [("槟城", "美食之都，世界遗产古城"), ("马六甲", "历史文化名城，距吉隆坡 2 小时")],
+        "河内": [("下龙湾", "世界自然遗产，距河内约 4 小时"), ("会安", "古镇灯笼和美食")],
+        "胡志明市": [("会安", "千年古镇值得一游"), ("富国岛", "越南度假天堂")],
+        "东京": [("箱根", "温泉和富士山景观"), ("镰仓", "经典的古都一日游")],
         "大阪": [("奈良", "可爱的小鹿和古寺"), ("神户", "牛排和港口夜景")],
         "京都": [("奈良", "搭配京都的经典路线"), ("宇治", "抹茶之乡")],
         "首尔": [("釜山", "韩国第二大城市，海景和美食"), ("济州岛", "韩国度假胜地")],
+        "伦敦": [("爱丁堡", "苏格兰首府，古堡风情"), ("牛津", "学术圣地，距伦敦 1 小时")],
+        "维也纳": [("萨尔茨堡", "莫扎特故乡，音乐之城"), ("哈尔施塔特", "童话小镇，绝美湖景")],
+        "慕尼黑": [("新天鹅堡", "童话城堡，巴伐利亚经典"), ("海德堡", "古老大学城，浪漫莱茵河畔")],
+        "柏林": [("波茨坦", "无忧宫和普鲁士历史"), ("德累斯顿", "易北河上的佛罗伦萨")],
+        "哥本哈根": [("奥胡斯", "丹麦第二大城，现代艺术"), ("欧登塞", "安徒生故乡")],
+        "斯德哥尔摩": [("哥德堡", "西海岸美食之城"), ("基律纳", "极光和冰酒店")],
+        "赫尔辛基": [("罗瓦涅米", "圣诞老人村，追极光胜地"), ("坦佩雷", "芬兰工业文化名城")],
+        "奥斯陆": [("卑尔根", "峡湾门户，彩色木屋"), ("特罗姆瑟", "极光之城，北极圈体验")],
+        "开罗": [("卢克索", "神庙和帝王谷"), ("阿斯旺", "努比亚文化和阿布辛贝神庙")],
+        "内罗毕": [("马赛马拉", "非洲最壮观的野生动物迁徙"), ("蒙巴萨", "印度洋海滨度假")],
         "巴黎": [("凡尔赛", "宏伟的皇家宫殿"), ("卢瓦尔河谷", "城堡之旅")],
         "北京": [("天津", "高铁 30 分钟直达"), ("承德", "避暑山庄值得一游")],
         "上海": [("苏州", "园林之城，高铁 25 分钟"), ("杭州", "西湖美景，高铁 1 小时")],
@@ -638,17 +1001,22 @@ def generate_evaluation(trip_dict, profile=None):
     profile: UserProfile.to_dict() 或 None
     返回: {"overall_score": int, "evaluation_data": dict}
     """
-    benchmarks = _load_benchmarks()
+    raw_benchmarks = _load_benchmarks()
     legs = trip_dict.get("legs", [])
     expenses = trip_dict.get("expenses", [])
+    traveler_count = max(trip_dict.get("traveler_count", 1), 1)
+
+    # 消费层级 & 季节调整
+    tier_mult = _compute_tier_multiplier(profile, traveler_count)
+    tier_lbl = _tier_label(tier_mult)
+    benchmarks = _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs)
 
     cost_m = _compute_cost_metrics(trip_dict, legs, expenses, benchmarks)
-    pace_m = _compute_pace_metrics(legs)
+    pace_m = _compute_pace_metrics(legs, benchmarks)
     accom_m = _compute_accommodation_metrics(legs, expenses, benchmarks)
     transport_m = _compute_transport_metrics(legs)
     attractions_m = _compute_attractions_metrics(legs, benchmarks)
 
-    # 加权总分
     overall = _clamp(
         cost_m["score"] * 0.20 +
         pace_m["score"] * 0.20 +
@@ -657,20 +1025,20 @@ def generate_evaluation(trip_dict, profile=None):
         attractions_m["score"] * 0.30
     )
 
-    summary = _generate_summary(overall, cost_m, pace_m, attractions_m, legs, profile)
+    summary = _generate_summary(overall, cost_m, pace_m, attractions_m, legs,
+                                profile, tier_label=tier_lbl)
 
-    # 城市维度评价
     cities = []
     for leg in legs:
         city_eval = _evaluate_city(leg, expenses, benchmarks)
         cities.append(city_eval)
 
-    suggestions = _generate_suggestions(trip_dict, legs, cost_m, pace_m, attractions_m, benchmarks, profile)
+    suggestions = _generate_suggestions(trip_dict, legs, cost_m, pace_m,
+                                        attractions_m, benchmarks, profile)
 
-    cost_text = _generate_cost_text(cost_m)
+    cost_text = _generate_cost_text(cost_m, tier_label=tier_lbl)
     cost_tags = _generate_cost_tags(cost_m)
 
-    # 花费维度：预算占比增强
     if profile and profile.get("annual_travel_budget", 0) > 0:
         budget = profile["annual_travel_budget"]
         budget_pct = round(cost_m["total_expense"] / budget * 100)
@@ -680,6 +1048,10 @@ def generate_evaluation(trip_dict, profile=None):
 
     evaluation_data = {
         "summary": summary,
+        "profile_context": {
+            "tier_label": tier_lbl,
+            "tier_multiplier": round(tier_mult, 2),
+        },
         "dimensions": {
             "cost": {
                 "score": cost_m["score"],
@@ -698,7 +1070,7 @@ def generate_evaluation(trip_dict, profile=None):
             "accommodation": {
                 "score": accom_m["score"],
                 "label": "住宿品质",
-                "text": _generate_accommodation_text(accom_m),
+                "text": _generate_accommodation_text(accom_m, tier_label=tier_lbl),
                 "tags": _generate_accommodation_tags(accom_m),
                 "metrics": accom_m,
             },

@@ -5,7 +5,11 @@
     "avg_hotel_price_cny": 350,
     "must_see": ["大皇宫", "卧佛寺", "郑王庙", "暹罗广场", "考山路", "四面佛", "水上市场", "唐人街"],
     "typical_stay_days": 3,
-    "tips": "11月至2月为最佳旅季，避开泼水节高峰期"
+    "tips": "11月至2月为最佳旅季，避开泼水节高峰期",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
   },
   "清迈": {
     "country": "泰国",
@@ -13,7 +17,11 @@
     "avg_hotel_price_cny": 250,
     "must_see": ["素贴山", "清迈古城", "周日夜市", "大象自然保护区", "清迈大学", "帕辛寺", "塔佩门"],
     "typical_stay_days": 3,
-    "tips": "11月至2月天气凉爽，周日夜市必去"
+    "tips": "11月至2月天气凉爽，周日夜市必去",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [4, 5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
   },
   "普吉岛": {
     "country": "泰国",
@@ -21,7 +29,71 @@
     "avg_hotel_price_cny": 450,
     "must_see": ["芭东海滩", "卡塔海滩", "皮皮岛", "查龙寺", "普吉老城", "攀牙湾"],
     "typical_stay_days": 3,
-    "tips": "11月至4月为旱季，适合海滩活动"
+    "tips": "11月至4月为旱季，适合海滩活动",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.35},
+      "off_peak": {"months": [5, 6, 7, 8, 9, 10], "multiplier": 0.75}
+    }
+  },
+  "芭提雅": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["步行街", "真理寺", "格兰岛", "信不信由你博物馆", "四方水上市场", "蒂芬妮人妖秀"],
+    "typical_stay_days": 2,
+    "tips": "曼谷周边最近的海滨度假地，夜生活丰富",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "苏梅岛": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 850,
+    "avg_hotel_price_cny": 450,
+    "must_see": ["查汶海滩", "安通国家公园", "大佛寺", "祖父祖母石", "拉迈海滩", "纳芒瀑布"],
+    "typical_stay_days": 3,
+    "tips": "泰国精品海岛，2月至4月天气最稳定",
+    "seasons": {
+      "peak": {"months": [1, 2, 3, 4, 12], "multiplier": 1.35},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.75}
+    }
+  },
+  "清莱": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 220,
+    "must_see": ["白庙", "蓝庙", "黑屋博物馆", "金三角", "辛哈公园", "清莱夜市"],
+    "typical_stay_days": 2,
+    "tips": "比清迈更清静的北部小城，白庙蓝庙必打卡",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "华欣": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["华欣海滩", "圣托里尼乐园", "华欣夜市", "爱与希望之宫", "三百峰国家公园", "华欣火车站"],
+    "typical_stay_days": 2,
+    "tips": "泰国皇室度假地，曼谷南下3小时的宁静海滨",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "喀比": {
+    "country": "泰国",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["莱利海滩", "四岛游", "翡翠池", "虎穴寺", "奥南海滩", "甲米镇夜市", "洪岛"],
+    "typical_stay_days": 3,
+    "tips": "比普吉岛安静的海滨替代选择，攀岩爱好者天堂",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.30},
+      "off_peak": {"months": [5, 6, 7, 8, 9, 10], "multiplier": 0.75}
+    }
   },
   "东京": {
     "country": "日本",
@@ -29,7 +101,11 @@
     "avg_hotel_price_cny": 800,
     "must_see": ["浅草寺", "东京塔", "涩谷十字路口", "明治神宫", "新宿御苑", "秋叶原", "银座", "上野公园"],
     "typical_stay_days": 4,
-    "tips": "3-4月樱花季和10-11月红叶季最佳"
+    "tips": "3-4月樱花季和10-11月红叶季最佳",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.35},
+      "off_peak": {"months": [1, 2, 6, 7, 8], "multiplier": 0.80}
+    }
   },
   "大阪": {
     "country": "日本",
@@ -37,7 +113,11 @@
     "avg_hotel_price_cny": 650,
     "must_see": ["大阪城", "道顿堀", "心斋桥", "通天阁", "环球影城", "黑门市场", "天王寺"],
     "typical_stay_days": 3,
-    "tips": "美食之都，道顿堀是必去美食街"
+    "tips": "美食之都，道顿堀是必去美食街",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 6, 7, 8], "multiplier": 0.80}
+    }
   },
   "京都": {
     "country": "日本",
@@ -45,7 +125,179 @@
     "avg_hotel_price_cny": 700,
     "must_see": ["金阁寺", "伏见稻荷大社", "清水寺", "岚山竹林", "二条城", "祇园", "哲学之道"],
     "typical_stay_days": 3,
-    "tips": "春秋两季景色最佳，建议穿和服体验"
+    "tips": "春秋两季景色最佳，建议穿和服体验",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.40},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "奈良": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["东大寺", "奈良公园", "春日大社", "兴福寺", "若草山", "奈良町"],
+    "typical_stay_days": 1,
+    "tips": "可从大阪或京都当日往返，小鹿互动是必体验项目",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "北海道": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 650,
+    "must_see": ["富良野花田", "小樽运河", "旭山动物园", "洞爷湖", "函馆夜景", "美瑛青池", "登别地狱谷"],
+    "typical_stay_days": 5,
+    "tips": "夏季花海冬季雪国，建议租车自驾深度游",
+    "seasons": {
+      "peak": {"months": [7, 8, 12, 1, 2], "multiplier": 1.35},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "札幌": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 650,
+    "must_see": ["大通公园", "札幌电视塔", "北海道厅旧本厅舍", "白色恋人公园", "狸小路商店街", "二条市场", "藻岩山夜景"],
+    "typical_stay_days": 2,
+    "tips": "2月雪祭世界闻名，味噌拉面和成吉思汗烤肉必尝",
+    "seasons": {
+      "peak": {"months": [2, 7, 8, 12], "multiplier": 1.30},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "冲绳": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["美丽海水族馆", "首里城", "万座毛", "古宇利岛", "国际通", "残波岬", "青之洞窟浮潜"],
+    "typical_stay_days": 4,
+    "tips": "日本的热带度假地，4月至10月适合水上活动",
+    "seasons": {
+      "peak": {"months": [7, 8, 3], "multiplier": 1.35},
+      "off_peak": {"months": [1, 2, 11, 12], "multiplier": 0.80}
+    }
+  },
+  "那霸": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 580,
+    "must_see": ["首里城", "国际通", "牧志公设市场", "波上宫", "壶屋通陶器街", "DFS免税店"],
+    "typical_stay_days": 2,
+    "tips": "冲绳首府，美食购物集中，可作为周边离岛出发点",
+    "seasons": {
+      "peak": {"months": [7, 8, 3], "multiplier": 1.35},
+      "off_peak": {"months": [1, 2, 11, 12], "multiplier": 0.80}
+    }
+  },
+  "广岛": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 580,
+    "must_see": ["原爆圆顶屋", "和平纪念公园", "严岛神社", "宫岛", "广岛城", "缩景园"],
+    "typical_stay_days": 2,
+    "tips": "广岛烧和牡蛎是当地特色，宫岛半日游必去",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "福冈": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 580,
+    "must_see": ["太宰府天满宫", "博多运河城", "中洲屋台", "大濠公园", "栉田神社", "海滨公园", "博多站"],
+    "typical_stay_days": 2,
+    "tips": "九州门户，博多拉面和屋台夜市不可错过",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "箱根": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1300,
+    "avg_hotel_price_cny": 700,
+    "must_see": ["芦之湖", "大涌谷", "箱根神社", "箱根缆车", "箱根露天博物馆", "箱根海盗船"],
+    "typical_stay_days": 2,
+    "tips": "东京周边温泉度假胜地，天气好时可远眺富士山",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.35},
+      "off_peak": {"months": [1, 2, 6, 7], "multiplier": 0.80}
+    }
+  },
+  "镰仓": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 650,
+    "must_see": ["镰仓大佛", "鹤冈八幡宫", "江之岛", "明月院", "报国寺竹林", "镰仓高校前站"],
+    "typical_stay_days": 1,
+    "tips": "灌篮高手取景地，江之电沿线一日游经典路线",
+    "seasons": {
+      "peak": {"months": [3, 4, 6, 10, 11], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "金泽": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["兼六园", "金泽城", "东茶屋街", "近江町市场", "21世纪美术馆", "武家屋敷"],
+    "typical_stay_days": 2,
+    "tips": "小京都之称，保留江户风貌，海鲜极为新鲜",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "仙台": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1000,
+    "avg_hotel_price_cny": 550,
+    "must_see": ["松岛", "瑞凤殿", "仙台城遗址", "国分町", "仙台朝市", "秋保大瀑布"],
+    "typical_stay_days": 2,
+    "tips": "东北重镇，牛舌是城市名片，8月七夕祭热闹非凡",
+    "seasons": {
+      "peak": {"months": [4, 5, 8, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 6, 7], "multiplier": 0.80}
+    }
+  },
+  "长崎": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1000,
+    "avg_hotel_price_cny": 550,
+    "must_see": ["哥拉巴园", "和平公园", "稻佐山夜景", "大浦天主堂", "眼镜桥", "军舰岛"],
+    "typical_stay_days": 2,
+    "tips": "中西文化交融之城，稻佐山夜景与函馆齐名",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 6, 7], "multiplier": 0.80}
+    }
+  },
+  "神户": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 650,
+    "must_see": ["北野异人馆", "神户港", "南京町", "有马温泉", "摩耶山夜景", "神户牛排馆"],
+    "typical_stay_days": 2,
+    "tips": "以神户牛肉闻名世界，港口夜景浪漫迷人",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "名古屋": {
+    "country": "日本",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["名古屋城", "热田神宫", "大须商店街", "绿洲21", "丰田产业技术纪念馆", "名古屋港水族馆"],
+    "typical_stay_days": 2,
+    "tips": "日本中部枢纽，鳗鱼饭三吃和味噌猪排必尝",
+    "seasons": {
+      "peak": {"months": [3, 4, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
   },
   "首尔": {
     "country": "韩国",
@@ -53,7 +305,143 @@
     "avg_hotel_price_cny": 500,
     "must_see": ["景福宫", "明洞", "北村韩屋村", "南山塔", "弘大", "广藏市场", "梨泰院"],
     "typical_stay_days": 3,
-    "tips": "春秋季节最宜，冬季可体验滑雪"
+    "tips": "春秋季节最宜，冬季可体验滑雪",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "釜山": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 850,
+    "avg_hotel_price_cny": 420,
+    "must_see": ["海云台海滩", "甘川文化村", "海东龙宫寺", "广安里大桥", "札嘎其鱼市场", "太宗台", "影岛大桥"],
+    "typical_stay_days": 3,
+    "tips": "韩国第二大城市，海鲜和海景兼得",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "济州岛": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 900,
+    "avg_hotel_price_cny": 450,
+    "must_see": ["汉拿山", "城山日出峰", "牛岛", "中文旅游区", "柱状节理带", "涉地可支", "天帝渊瀑布"],
+    "typical_stay_days": 3,
+    "tips": "韩国度假胜地，免签入境，建议租车环岛",
+    "seasons": {
+      "peak": {"months": [4, 5, 7, 8, 10], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 12], "multiplier": 0.80}
+    }
+  },
+  "济州市": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 850,
+    "avg_hotel_price_cny": 430,
+    "must_see": ["东门市场", "龙头岩", "汉拿树木园", "济州牧官衙", "道头彩虹海岸道路", "梨湖木筏海滩"],
+    "typical_stay_days": 2,
+    "tips": "济州岛北部中心城市，美食集中且交通方便",
+    "seasons": {
+      "peak": {"months": [4, 5, 7, 8, 10], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 12], "multiplier": 0.80}
+    }
+  },
+  "西归浦": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 880,
+    "avg_hotel_price_cny": 440,
+    "must_see": ["城山日出峰", "正房瀑布", "天地渊瀑布", "柱状节理带", "李仲燮街", "西归浦每日偶来市场"],
+    "typical_stay_days": 2,
+    "tips": "济州岛南部中心，自然景观集中度高",
+    "seasons": {
+      "peak": {"months": [4, 5, 7, 8, 10], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 12], "multiplier": 0.80}
+    }
+  },
+  "仁川": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["松岛中央公园", "仁川中华街", "月尾岛", "仁川大桥", "仁川登陆纪念馆", "开港场街"],
+    "typical_stay_days": 1,
+    "tips": "韩国门户城市，松岛新城和中华街值得一逛",
+    "seasons": {
+      "peak": {"months": [4, 5, 9, 10], "multiplier": 1.20},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.85}
+    }
+  },
+  "庆州": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 750,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["佛国寺", "石窟庵", "瞻星台", "大陵苑", "雁鸭池", "庆州国立博物馆", "良洞村"],
+    "typical_stay_days": 2,
+    "tips": "没有围墙的博物馆，新罗千年古都",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "全州": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["全州韩屋村", "庆基殿", "全州拌饭", "殿洞圣堂", "梧木台", "南部市场夜市"],
+    "typical_stay_days": 2,
+    "tips": "韩国美食之都，拌饭发源地，韩屋村穿韩服体验",
+    "seasons": {
+      "peak": {"months": [4, 5, 9, 10], "multiplier": 1.20},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.85}
+    }
+  },
+  "大邱": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 750,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["东城路", "西门市场", "前山展望台", "药令市韩医药博物馆", "金光石壁画街", "寿城池"],
+    "typical_stay_days": 2,
+    "tips": "韩国纺织之都，夏季炎热，美食丰富",
+    "seasons": {
+      "peak": {"months": [4, 5, 9, 10], "multiplier": 1.20},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.85}
+    }
+  },
+  "江陵": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["正东津日出", "镜浦台", "注文津海滩", "乌竹轩", "安木海滩咖啡街", "江门海滩"],
+    "typical_stay_days": 2,
+    "tips": "韩国东海岸代表城市，咖啡文化发达",
+    "seasons": {
+      "peak": {"months": [7, 8, 12, 1], "multiplier": 1.30},
+      "off_peak": {"months": [3, 4, 11], "multiplier": 0.85}
+    }
+  },
+  "春川": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["南怡岛", "昭阳湖", "春川明洞", "江村铁道自行车", "衣岩湖天空步道", "春川荞麦面体验馆"],
+    "typical_stay_days": 2,
+    "tips": "《冬季恋歌》取景地，辣炒鸡排是当地名菜",
+    "seasons": {
+      "peak": {"months": [4, 5, 10, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "安东": {
+    "country": "韩国",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["河回村", "安东假面博物馆", "月映桥", "陶山书院", "凤停寺", "安东炖鸡一条街"],
+    "typical_stay_days": 1,
+    "tips": "韩国儒教文化中心，每年秋季有安东假面舞节",
+    "seasons": {
+      "peak": {"months": [4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 7, 8], "multiplier": 0.80}
+    }
   },
   "新加坡": {
     "country": "新加坡",
@@ -61,7 +449,11 @@
     "avg_hotel_price_cny": 800,
     "must_see": ["滨海湾花园", "鱼尾狮公园", "圣淘沙", "牛车水", "小印度", "乌节路", "滨海湾金沙"],
     "typical_stay_days": 3,
-    "tips": "全年皆宜，注意防晒"
+    "tips": "全年皆宜，注意防晒",
+    "seasons": {
+      "peak": {"months": [12, 1, 6, 7], "multiplier": 1.15},
+      "off_peak": {"months": [2, 3, 9], "multiplier": 0.90}
+    }
   },
   "巴厘岛": {
     "country": "印度尼西亚",
@@ -69,71 +461,11 @@
     "avg_hotel_price_cny": 400,
     "must_see": ["乌布梯田", "海神庙", "库塔海滩", "乌布猴林", "水神庙", "金巴兰海滩", "蓝梦岛"],
     "typical_stay_days": 4,
-    "tips": "4月至10月为旱季，最适合旅行"
-  },
-  "巴黎": {
-    "country": "法国",
-    "avg_daily_cost_cny": 2000,
-    "avg_hotel_price_cny": 1200,
-    "must_see": ["埃菲尔铁塔", "卢浮宫", "凯旋门", "巴黎圣母院", "香榭丽舍大街", "蒙马特高地", "塞纳河"],
-    "typical_stay_days": 4,
-    "tips": "4-6月和9-10月气候最宜"
-  },
-  "伦敦": {
-    "country": "英国",
-    "avg_daily_cost_cny": 2200,
-    "avg_hotel_price_cny": 1300,
-    "must_see": ["大本钟", "伦敦塔桥", "白金汉宫", "大英博物馆", "伦敦眼", "海德公园", "西敏寺"],
-    "typical_stay_days": 4,
-    "tips": "5-9月天气较好，博物馆多数免费"
-  },
-  "纽约": {
-    "country": "美国",
-    "avg_daily_cost_cny": 2500,
-    "avg_hotel_price_cny": 1500,
-    "must_see": ["自由女神像", "时代广场", "中央公园", "帝国大厦", "布鲁克林大桥", "大都会博物馆", "华尔街"],
-    "typical_stay_days": 4,
-    "tips": "春秋季最佳，冬季圣诞氛围浓厚"
-  },
-  "罗马": {
-    "country": "意大利",
-    "avg_daily_cost_cny": 1600,
-    "avg_hotel_price_cny": 900,
-    "must_see": ["斗兽场", "梵蒂冈", "许愿池", "万神殿", "西班牙广场", "圣彼得大教堂", "古罗马广场"],
-    "typical_stay_days": 3,
-    "tips": "4-6月和9-10月避开酷暑"
-  },
-  "悉尼": {
-    "country": "澳大利亚",
-    "avg_daily_cost_cny": 1800,
-    "avg_hotel_price_cny": 1000,
-    "must_see": ["悉尼歌剧院", "海港大桥", "邦迪海滩", "达令港", "蓝山", "塔龙加动物园"],
-    "typical_stay_days": 3,
-    "tips": "12月至2月为夏季，最适合海滩活动"
-  },
-  "迪拜": {
-    "country": "阿联酋",
-    "avg_daily_cost_cny": 1800,
-    "avg_hotel_price_cny": 1000,
-    "must_see": ["哈利法塔", "帆船酒店", "迪拜购物中心", "棕榈岛", "迪拜博物馆", "黄金市集"],
-    "typical_stay_days": 3,
-    "tips": "11月至3月气候温和，避开夏季高温"
-  },
-  "香港": {
-    "country": "中国",
-    "avg_daily_cost_cny": 1200,
-    "avg_hotel_price_cny": 700,
-    "must_see": ["维多利亚港", "太平山顶", "星光大道", "迪士尼乐园", "庙街夜市", "兰桂坊", "大屿山"],
-    "typical_stay_days": 3,
-    "tips": "10月至3月天气最舒适"
-  },
-  "台北": {
-    "country": "中国",
-    "avg_daily_cost_cny": 800,
-    "avg_hotel_price_cny": 400,
-    "must_see": ["台北101", "故宫博物院", "士林夜市", "中正纪念堂", "淡水老街", "九份", "象山"],
-    "typical_stay_days": 3,
-    "tips": "9-11月秋季气候最宜"
+    "tips": "4月至10月为旱季，最适合旅行",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.35},
+      "off_peak": {"months": [1, 2, 3, 10, 11], "multiplier": 0.75}
+    }
   },
   "吉隆坡": {
     "country": "马来西亚",
@@ -141,31 +473,479 @@
     "avg_hotel_price_cny": 300,
     "must_see": ["双子塔", "茨厂街", "国家清真寺", "黑风洞", "独立广场", "阿罗街"],
     "typical_stay_days": 2,
-    "tips": "全年皆宜，3-4月和9-11月雨量较少"
+    "tips": "全年皆宜，3-4月和9-11月雨量较少",
+    "seasons": {
+      "peak": {"months": [3, 4, 9, 10, 11], "multiplier": 1.15},
+      "off_peak": {"months": [1, 2, 6, 7, 8], "multiplier": 0.90}
+    }
+  },
+  "槟城": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["乔治市壁画", "极乐寺", "升旗山", "姓氏桥", "张弼士故居", "槟城娘惹博物馆", "槟城街头美食"],
+    "typical_stay_days": 3,
+    "tips": "马来西亚美食之都，街头小吃是最大亮点",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 6, 7], "multiplier": 1.15},
+      "off_peak": {"months": [3, 4, 9, 10], "multiplier": 0.90}
+    }
+  },
+  "乔治市": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["乔治市壁画", "极乐寺", "升旗山", "姓氏桥", "张弼士故居", "槟城娘惹博物馆", "槟城街头美食"],
+    "typical_stay_days": 3,
+    "tips": "UNESCO世遗老城，街头壁画和美食探索最佳结合",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 6, 7], "multiplier": 1.15},
+      "off_peak": {"months": [3, 4, 9, 10], "multiplier": 0.90}
+    }
+  },
+  "马六甲": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 230,
+    "must_see": ["荷兰红屋", "圣保罗教堂", "鸡场街", "马六甲海峡清真寺", "马六甲河游船", "峇峇娘惹博物馆"],
+    "typical_stay_days": 2,
+    "tips": "海峡殖民历史名城，鸡场街夜市周末最热闹",
+    "seasons": {
+      "peak": {"months": [3, 4, 11, 12], "multiplier": 1.15},
+      "off_peak": {"months": [1, 2, 9, 10], "multiplier": 0.90}
+    }
+  },
+  "古晋": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 260,
+    "must_see": ["砂拉越河滨公园", "猫博物馆", "砂拉越文化村", "巴科国家公园", "实蒙谷野生动物中心", "大伯公庙"],
+    "typical_stay_days": 2,
+    "tips": "猫城，婆罗洲热带雨林的门户城市",
+    "seasons": {
+      "peak": {"months": [4, 5, 6, 7, 8], "multiplier": 1.15},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.85}
+    }
+  },
+  "亚庇": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["神山公园", "东姑阿都拉曼海洋公园", "水上清真寺", "丹绒亚路日落", "加雅街周日市场", "马里马里文化村"],
+    "typical_stay_days": 3,
+    "tips": "沙巴首府，看日落跳岛潜水登神山一站满足",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10], "multiplier": 1.20},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.85}
+    }
+  },
+  "兰卡威": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["天空之桥", "缆车", "珍南海滩", "红树林地质公园", "兰卡威免税购物", "芭雅岛浮潜"],
+    "typical_stay_days": 3,
+    "tips": "马来免税天堂，天空之桥和跳岛游是招牌体验",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "新山": {
+    "country": "马来西亚",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 230,
+    "must_see": ["乐高乐园", "陈旭年文化街", "柔佛古庙", "新山华族历史文物馆", "丹绒比艾国家公园", "奥斯汀山"],
+    "typical_stay_days": 2,
+    "tips": "与新加坡一桥之隔，乐高乐园是亲子游首选",
+    "seasons": {
+      "peak": {"months": [3, 4, 6, 7, 11, 12], "multiplier": 1.15},
+      "off_peak": {"months": [1, 2, 9, 10], "multiplier": 0.90}
+    }
   },
   "胡志明市": {
     "country": "越南",
-    "avg_daily_cost_cny": 450,
-    "avg_hotel_price_cny": 200,
+    "avg_daily_cost_cny": 520,
+    "avg_hotel_price_cny": 300,
     "must_see": ["中央邮局", "红教堂", "统一宫", "范五老街", "战争遗迹博物馆", "滨城市场"],
     "typical_stay_days": 2,
-    "tips": "12月至4月为旱季，最适合旅行"
+    "tips": "12月至4月为旱季，最适合旅行",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3, 4], "multiplier": 1.20},
+      "off_peak": {"months": [6, 7, 8, 9, 10], "multiplier": 0.80}
+    }
   },
   "河内": {
     "country": "越南",
-    "avg_daily_cost_cny": 400,
-    "avg_hotel_price_cny": 180,
+    "avg_daily_cost_cny": 480,
+    "avg_hotel_price_cny": 280,
     "must_see": ["还剑湖", "胡志明纪念堂", "三十六行街", "河内大教堂", "文庙", "西湖"],
     "typical_stay_days": 2,
-    "tips": "10月至12月秋季气候宜人"
+    "tips": "10月至12月秋季气候宜人",
+    "seasons": {
+      "peak": {"months": [10, 11, 12], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8], "multiplier": 0.80}
+    }
   },
   "岘港": {
     "country": "越南",
-    "avg_daily_cost_cny": 400,
-    "avg_hotel_price_cny": 200,
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 300,
     "must_see": ["美溪海滩", "巴拿山", "会安古城", "山茶半岛", "龙桥", "五行山"],
     "typical_stay_days": 3,
-    "tips": "2月至5月天气最佳"
+    "tips": "2月至5月天气最佳",
+    "seasons": {
+      "peak": {"months": [2, 3, 4, 5], "multiplier": 1.25},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "会安": {
+    "country": "越南",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["会安古城", "日本廊桥", "灯笼夜市", "安邦海滩", "迦南岛簸箕船", "裁缝定制"],
+    "typical_stay_days": 2,
+    "tips": "每月农历十四满月灯会最具氛围，定制衣服物美价廉",
+    "seasons": {
+      "peak": {"months": [2, 3, 4, 5], "multiplier": 1.25},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "芽庄": {
+    "country": "越南",
+    "avg_daily_cost_cny": 520,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["芽庄海滩", "婆那加占婆塔", "珍珠岛游乐园", "四岛游", "泥浆浴", "芽庄大教堂"],
+    "typical_stay_days": 3,
+    "tips": "越南热门海滨度假地，泥浆浴是特色体验",
+    "seasons": {
+      "peak": {"months": [1, 2, 3, 4, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "大叻": {
+    "country": "越南",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 270,
+    "must_see": ["疯狂屋", "春香湖", "大叻花园", "大叻火车站", "灵福寺", "大叻夜市"],
+    "typical_stay_days": 2,
+    "tips": "越南的小巴黎，四季如春的高原花城",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [7, 8, 9], "multiplier": 0.85}
+    }
+  },
+  "顺化": {
+    "country": "越南",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 270,
+    "must_see": ["顺化皇城", "天姥寺", "启定陵", "明命陵", "东巴市场", "香江游船"],
+    "typical_stay_days": 2,
+    "tips": "越南末代皇朝古都，皇宫和皇陵是核心看点",
+    "seasons": {
+      "peak": {"months": [2, 3, 4], "multiplier": 1.20},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "下龙湾": {
+    "country": "越南",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 340,
+    "must_see": ["游船巡湾", "天宫洞", "斗鸡石", "惊讶洞", "吉婆岛", "水上渔村", "皮划艇"],
+    "typical_stay_days": 2,
+    "tips": "世界自然遗产，推荐至少一晚游船过夜体验",
+    "seasons": {
+      "peak": {"months": [10, 11, 3, 4], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "富国岛": {
+    "country": "越南",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["星海滩", "翡翠湾", "富国岛大世界", "跨海缆车", "夜市", "浮潜和潜水"],
+    "typical_stay_days": 3,
+    "tips": "越南免签海岛，度假村性价比高",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.30},
+      "off_peak": {"months": [6, 7, 8, 9], "multiplier": 0.75}
+    }
+  },
+  "曼德勒": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["曼德勒皇宫", "固都陶佛塔", "乌本桥", "曼德勒山", "马哈伽纳扬僧院", "因瓦古城"],
+    "typical_stay_days": 2,
+    "tips": "11月至2月为最佳旅季，避开雨季",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "蒲甘": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["阿南达寺", "瑞山都塔", "达玛央吉佛塔", "苏拉玛尼寺", "热气球观日出", "伊洛瓦底江日落"],
+    "typical_stay_days": 2,
+    "tips": "日出和日落时分最适合观赏佛塔群",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
+  },
+  "茵莱湖": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["茵莱湖游船", "水上市场", "长颈族村落", "跳猫寺", "浮岛花园", "织布工坊"],
+    "typical_stay_days": 2,
+    "tips": "10月至3月气候干爽，适合游湖",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "仰光": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 420,
+    "must_see": ["瑞光大金塔", "仰光环城火车", "昂山市场", "苏雷塔", "卡拉威宫", "茵雅湖"],
+    "typical_stay_days": 2,
+    "tips": "最大城市，瑞光大金塔必去",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "良乌": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["瑞喜宫塔", "良乌市场", "蒲甘考古博物馆", "蒲甘佛塔群", "伊洛瓦底江日落"],
+    "typical_stay_days": 2,
+    "tips": "蒲甘遗迹区的门户小镇，餐饮住宿集中于此",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
+  },
+  "娘水": {
+    "country": "缅甸",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["茵莱湖", "水上市场", "独脚划船渔夫", "跳猫寺", "浮岛花园", "红山酒庄"],
+    "typical_stay_days": 2,
+    "tips": "茵莱湖游船出发点，傍晚湖畔自行车骑行很惬意",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "科伦坡": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 750,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["冈嘎拉马寺", "贝拉湖", "科伦坡国家博物馆", "独立广场", "加勒菲斯绿地", "佩塔市场", "莲花塔"],
+    "typical_stay_days": 2,
+    "tips": "12月至3月为旱季，适合城市游览",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "康提": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["佛牙寺", "康提湖", "皇家植物园", "锡兰茶博物馆", "亚瑟席位观景台", "乌达瓦塔凯勒保护区"],
+    "typical_stay_days": 2,
+    "tips": "文化古都，每年8月佛牙节盛况空前",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3, 8], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 9], "multiplier": 0.80}
+    }
+  },
+  "康堤": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["佛牙寺", "康提湖", "皇家植物园", "锡兰茶博物馆", "亚瑟席位观景台", "乌达瓦塔凯勒保护区"],
+    "typical_stay_days": 2,
+    "tips": "文化古都，每年8月佛牙节盛况空前",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3, 8], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 9], "multiplier": 0.80}
+    }
+  },
+  "加勒": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["加勒古堡", "灯塔", "荷兰教堂", "海洋考古博物馆", "旗岩", "乌纳瓦图纳海滩"],
+    "typical_stay_days": 2,
+    "tips": "UNESCO世遗古堡，漫步城墙看日落是经典体验",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "锡吉里耶": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["狮子岩", "锡吉里耶博物馆", "皮杜兰加拉岩", "锡吉里耶壁画", "水上花园", "眼镜蛇岩"],
+    "typical_stay_days": 1,
+    "tips": "清晨攀登狮子岩避开高温，登顶可俯瞰整片丛林",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "尼甘布": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["尼甘布鱼市", "荷兰运河", "圣玛丽教堂", "尼甘布泻湖", "尼甘布海滩", "荷兰堡垒遗址"],
+    "typical_stay_days": 1,
+    "tips": "距机场最近的海滨小城，适合作为首站或末站",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "努沃勒埃利耶": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["霍顿平原", "世界尽头", "格雷戈里湖", "茶园参观", "维多利亚公园", "哈克加拉植物园"],
+    "typical_stay_days": 2,
+    "tips": "高山茶乡气候凉爽，霍顿平原需早起徒步",
+    "seasons": {
+      "peak": {"months": [1, 2, 3, 4], "multiplier": 1.20},
+      "off_peak": {"months": [6, 7, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "努瓦勒埃利耶": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["霍顿平原", "世界尽头", "格雷戈里湖", "茶园参观", "维多利亚公园", "哈克加拉植物园"],
+    "typical_stay_days": 2,
+    "tips": "高山茶乡气候凉爽，霍顿平原需早起徒步",
+    "seasons": {
+      "peak": {"months": [1, 2, 3, 4], "multiplier": 1.20},
+      "off_peak": {"months": [6, 7, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "丹布勒": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["丹布勒石窟寺", "黄金寺", "金佛", "丹布勒蔬果市场", "坎达拉马水库"],
+    "typical_stay_days": 1,
+    "tips": "世界遗产石窟寺，可作为锡吉里耶的住宿基地",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "埃勒": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["九拱桥", "小亚当峰", "埃勒岩", "拉瓦纳瀑布", "茶园火车", "峡谷徒步"],
+    "typical_stay_days": 2,
+    "tips": "从康提到埃勒的高山茶园火车被誉为最美铁路",
+    "seasons": {
+      "peak": {"months": [1, 2, 3, 4], "multiplier": 1.20},
+      "off_peak": {"months": [6, 7, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "蒂瑟": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["雅拉国家公园", "蒂瑟默哈拉默湖", "基里达维哈拉佛塔", "卡塔拉加马神庙", "丛林野生动物观赏"],
+    "typical_stay_days": 2,
+    "tips": "雅拉国家公园Safari的最佳住宿基地，清晨出发看金钱豹",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
+  },
+  "美瑞莎": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["美瑞莎海滩", "观鲸", "椰子山观景台", "高跷渔夫", "浮潜", "冲浪"],
+    "typical_stay_days": 2,
+    "tips": "11月至4月是观鲸旺季，蓝鲸出没率极高",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3, 4], "multiplier": 1.30},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
+  },
+  "亭可马里": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["尼拉维里海滩", "鸽子岛浮潜", "科内斯瓦拉姆神庙", "天然温泉", "鲸鱼和海豚观赏", "荷兰湾"],
+    "typical_stay_days": 2,
+    "tips": "东海岸最美海滩，5月至9月为最佳季节（与西海岸相反）",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "阿努拉德普勒": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["菩提树", "鲁万维利萨亚佛塔", "杰塔瓦纳拉马佛塔", "双子池", "伊苏鲁穆尼亚石庙", "阿巴亚吉里佛塔"],
+    "typical_stay_days": 1,
+    "tips": "斯里兰卡最古老的古都，骑自行车游览遗迹最为惬意",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8, 9, 10], "multiplier": 0.80}
+    }
+  },
+  "乌兰巴托": {
+    "country": "蒙古",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["成吉思汗广场", "甘丹寺", "博格达汗冬宫", "蒙古国家博物馆", "特勒吉国家公园", "成吉思汗骑马雕像"],
+    "typical_stay_days": 2,
+    "tips": "草原之国首都，7月那达慕大会是最佳体验时机",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.35},
+      "off_peak": {"months": [11, 12, 1, 2, 3], "multiplier": 0.70}
+    }
+  },
+  "哈拉和林": {
+    "country": "蒙古",
+    "avg_daily_cost_cny": 450,
+    "avg_hotel_price_cny": 220,
+    "must_see": ["额尔德尼召寺", "蒙古帝国古都遗址", "鄂尔浑河谷", "龟石", "哈拉和林博物馆"],
+    "typical_stay_days": 1,
+    "tips": "蒙古帝国古都，从乌兰巴托驱车约5小时可达",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2, 3], "multiplier": 0.70}
+    }
+  },
+  "多哈": {
+    "country": "卡塔尔",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["伊斯兰艺术博物馆", "瓦其夫老市场", "珍珠岛", "卡塔拉文化村", "国家博物馆", "滨海大道"],
+    "typical_stay_days": 2,
+    "tips": "中东富国小而精，冬季气候宜人，夏季酷热",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8, 9], "multiplier": 0.70}
+    }
   },
   "马尔代夫": {
     "country": "马尔代夫",
@@ -173,7 +953,47 @@
     "avg_hotel_price_cny": 2000,
     "must_see": ["水屋体验", "浮潜", "日落巡航", "海豚观赏", "水下餐厅"],
     "typical_stay_days": 4,
-    "tips": "11月至4月为旱季，最适合度假"
+    "tips": "11月至4月为旱季，最适合度假",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3, 4], "multiplier": 1.40},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.70}
+    }
+  },
+  "马累": {
+    "country": "马尔代夫",
+    "avg_daily_cost_cny": 2000,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["马累鱼市场", "胡鲁马累海滩", "星期五大清真寺", "国家博物馆", "居民岛浮潜", "马累人工沙滩"],
+    "typical_stay_days": 1,
+    "tips": "多数游客只做中转，居民岛平价游是高性价比选择",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3, 4], "multiplier": 1.40},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.70}
+    }
+  },
+  "斯里巴加湾市": {
+    "country": "文莱",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["奥马尔·阿里·赛福鼎清真寺", "水上村落", "杰鲁东公园", "苏丹皇宫", "皇家典藏馆", "淡布隆国家公园"],
+    "typical_stay_days": 2,
+    "tips": "小而富的石油国，全国禁酒，清真寺免费开放",
+    "seasons": {
+      "peak": {"months": [1, 2, 3], "multiplier": 1.15},
+      "off_peak": {"months": [9, 10, 11], "multiplier": 0.90}
+    }
+  },
+  "暹粒": {
+    "country": "柬埔寨",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["吴哥窟", "巴戎寺", "塔布隆寺", "女王宫", "吴哥夜市", "洞里萨湖", "崩密列"],
+    "typical_stay_days": 3,
+    "tips": "吴哥窟日出是人生必看，建议买三日票深度游览",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2], "multiplier": 1.30},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
   },
   "伊斯坦布尔": {
     "country": "土耳其",
@@ -181,7 +1001,203 @@
     "avg_hotel_price_cny": 400,
     "must_see": ["蓝色清真寺", "圣索菲亚大教堂", "大巴扎", "博斯普鲁斯海峡", "托普卡帕宫", "地下水宫"],
     "typical_stay_days": 3,
-    "tips": "4-5月和9-10月气候宜人"
+    "tips": "4-5月和9-10月气候宜人",
+    "seasons": {
+      "peak": {"months": [4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "巴黎": {
+    "country": "法国",
+    "avg_daily_cost_cny": 2000,
+    "avg_hotel_price_cny": 1200,
+    "must_see": ["埃菲尔铁塔", "卢浮宫", "凯旋门", "巴黎圣母院", "香榭丽舍大街", "蒙马特高地", "塞纳河"],
+    "typical_stay_days": 4,
+    "tips": "4-6月和9-10月气候最宜",
+    "seasons": {
+      "peak": {"months": [4, 5, 6, 9, 10], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "伦敦": {
+    "country": "英国",
+    "avg_daily_cost_cny": 2200,
+    "avg_hotel_price_cny": 1300,
+    "must_see": ["大本钟", "伦敦塔桥", "白金汉宫", "大英博物馆", "伦敦眼", "海德公园", "西敏寺"],
+    "typical_stay_days": 4,
+    "tips": "5-9月天气较好，博物馆多数免费",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "爱丁堡": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1750,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["爱丁堡城堡", "皇家英里", "亚瑟王座", "荷里路德宫", "卡尔顿山", "苏格兰国家博物馆", "王子街花园"],
+    "typical_stay_days": 3,
+    "tips": "8月爱丁堡国际艺术节期间最热闹但住宿需提前预订",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.40},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "曼彻斯特": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 850,
+    "must_see": ["老特拉福德球场", "曼彻斯特大教堂", "科学与工业博物馆", "北区", "约翰·赖兰兹图书馆", "唐人街"],
+    "typical_stay_days": 2,
+    "tips": "足球文化浓厚，两大球场不可错过",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "利物浦": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 800,
+    "must_see": ["披头士博物馆", "阿尔伯特码头", "安菲尔德球场", "利物浦大教堂", "沃克美术馆", "马修街"],
+    "typical_stay_days": 2,
+    "tips": "披头士粉丝圣地，码头区世界遗产值得漫步",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "约克": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 850,
+    "must_see": ["约克大教堂", "肉铺街", "约克城墙", "克利福德塔", "约克郡博物馆", "国家铁路博物馆", "约维克维京中心"],
+    "typical_stay_days": 2,
+    "tips": "中世纪古城保存完好，步行可游览全城",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 3], "multiplier": 0.80}
+    }
+  },
+  "剑桥": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["国王学院礼拜堂", "康河撑篙", "三一学院", "叹息桥", "菲茨威廉博物馆", "数学桥", "圆形教堂"],
+    "typical_stay_days": 2,
+    "tips": "康河撑篙是标志性体验，建议春夏前往",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "牛津": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["博德利图书馆", "基督教堂学院", "拉德克利夫图书馆", "叹息桥", "阿什莫林博物馆", "牛津城堡", "卡法斯塔"],
+    "typical_stay_days": 2,
+    "tips": "哈利波特取景地，学院需提前查询开放时间",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "巴斯": {
+    "country": "英国",
+    "avg_daily_cost_cny": 1550,
+    "avg_hotel_price_cny": 880,
+    "must_see": ["罗马浴场", "皇家新月楼", "巴斯修道院", "普尔特尼桥", "简·奥斯汀中心", "圆形广场"],
+    "typical_stay_days": 2,
+    "tips": "整座城市是世界遗产，乔治王时代建筑保存完好",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "纽约": {
+    "country": "美国",
+    "avg_daily_cost_cny": 2500,
+    "avg_hotel_price_cny": 1500,
+    "must_see": ["自由女神像", "时代广场", "中央公园", "帝国大厦", "布鲁克林大桥", "大都会博物馆", "华尔街"],
+    "typical_stay_days": 4,
+    "tips": "春秋季最佳，冬季圣诞氛围浓厚",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 3], "multiplier": 0.80}
+    }
+  },
+  "罗马": {
+    "country": "意大利",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["斗兽场", "梵蒂冈", "许愿池", "万神殿", "西班牙广场", "圣彼得大教堂", "古罗马广场"],
+    "typical_stay_days": 3,
+    "tips": "4-6月和9-10月避开酷暑",
+    "seasons": {
+      "peak": {"months": [4, 5, 6, 9, 10], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "悉尼": {
+    "country": "澳大利亚",
+    "avg_daily_cost_cny": 1800,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["悉尼歌剧院", "海港大桥", "邦迪海滩", "达令港", "蓝山", "塔龙加动物园"],
+    "typical_stay_days": 3,
+    "tips": "12月至2月为夏季，最适合海滩活动",
+    "seasons": {
+      "peak": {"months": [12, 1, 2], "multiplier": 1.30},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "迪拜": {
+    "country": "阿联酋",
+    "avg_daily_cost_cny": 1800,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["哈利法塔", "帆船酒店", "迪拜购物中心", "棕榈岛", "迪拜博物馆", "黄金市集"],
+    "typical_stay_days": 3,
+    "tips": "11月至3月气候温和，避开夏季高温",
+    "seasons": {
+      "peak": {"months": [11, 12, 1, 2, 3], "multiplier": 1.30},
+      "off_peak": {"months": [6, 7, 8, 9], "multiplier": 0.70}
+    }
+  },
+  "香港": {
+    "country": "中国",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 700,
+    "must_see": ["维多利亚港", "太平山顶", "星光大道", "迪士尼乐园", "庙街夜市", "兰桂坊", "大屿山"],
+    "typical_stay_days": 3,
+    "tips": "10月至3月天气最舒适",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2], "multiplier": 1.20},
+      "off_peak": {"months": [5, 6, 7, 8], "multiplier": 0.85}
+    }
+  },
+  "澳门": {
+    "country": "中国",
+    "avg_daily_cost_cny": 1100,
+    "avg_hotel_price_cny": 600,
+    "must_see": ["大三巴牌坊", "威尼斯人度假村", "妈阁庙", "官也街", "大炮台", "路环", "新葡京"],
+    "typical_stay_days": 2,
+    "tips": "世遗老城与赌场奢华并存，葡式蛋挞和猪扒包必尝",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8], "multiplier": 0.85}
+    }
+  },
+  "台北": {
+    "country": "中国",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["台北101", "故宫博物院", "士林夜市", "中正纪念堂", "淡水老街", "九份", "象山"],
+    "typical_stay_days": 3,
+    "tips": "9-11月秋季气候最宜",
+    "seasons": {
+      "peak": {"months": [9, 10, 11], "multiplier": 1.20},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.85}
+    }
   },
   "北京": {
     "country": "中国",
@@ -189,7 +1205,11 @@
     "avg_hotel_price_cny": 500,
     "must_see": ["故宫", "天安门广场", "长城", "颐和园", "天坛", "南锣鼓巷", "鸟巢"],
     "typical_stay_days": 4,
-    "tips": "9-10月秋高气爽最适合游览"
+    "tips": "9-10月秋高气爽最适合游览",
+    "seasons": {
+      "peak": {"months": [5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [12, 1, 2], "multiplier": 0.80}
+    }
   },
   "上海": {
     "country": "中国",
@@ -197,7 +1217,11 @@
     "avg_hotel_price_cny": 550,
     "must_see": ["外滩", "东方明珠", "豫园", "南京路", "迪士尼乐园", "田子坊", "陆家嘴"],
     "typical_stay_days": 3,
-    "tips": "3-5月和9-11月气候舒适"
+    "tips": "3-5月和9-11月气候舒适",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10, 11], "multiplier": 1.20},
+      "off_peak": {"months": [7, 8], "multiplier": 0.85}
+    }
   },
   "成都": {
     "country": "中国",
@@ -205,7 +1229,11 @@
     "avg_hotel_price_cny": 350,
     "must_see": ["大熊猫基地", "宽窄巷子", "锦里", "武侯祠", "都江堰", "春熙路", "杜甫草堂"],
     "typical_stay_days": 3,
-    "tips": "3-6月和9-11月最佳，美食之都"
+    "tips": "3-6月和9-11月最佳，美食之都",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10, 11], "multiplier": 1.20},
+      "off_peak": {"months": [7, 8], "multiplier": 0.85}
+    }
   },
   "西安": {
     "country": "中国",
@@ -213,7 +1241,11 @@
     "avg_hotel_price_cny": 300,
     "must_see": ["兵马俑", "大雁塔", "回民街", "古城墙", "华清宫", "钟鼓楼", "大唐不夜城"],
     "typical_stay_days": 3,
-    "tips": "春秋两季最佳，夏季较热"
+    "tips": "春秋两季最佳，夏季较热",
+    "seasons": {
+      "peak": {"months": [3, 4, 5, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [7, 8], "multiplier": 0.80}
+    }
   },
   "三亚": {
     "country": "中国",
@@ -221,38 +1253,510 @@
     "avg_hotel_price_cny": 600,
     "must_see": ["亚龙湾", "天涯海角", "蜈支洲岛", "南山寺", "大东海", "呀诺达雨林"],
     "typical_stay_days": 4,
-    "tips": "10月至次年3月气候最佳"
+    "tips": "10月至次年3月气候最佳",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.35},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.75}
+    }
   },
-  "曼德勒": {
-    "country": "缅甸",
-    "avg_daily_cost_cny": 350,
-    "avg_hotel_price_cny": 180,
-    "must_see": ["曼德勒皇宫", "固都陶佛塔", "乌本桥", "曼德勒山", "马哈伽纳扬僧院", "因瓦古城"],
-    "typical_stay_days": 2,
-    "tips": "11月至2月为最佳旅季，避开雨季"
+  "维也纳": {
+    "country": "奥地利",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["美泉宫", "圣斯蒂芬大教堂", "霍夫堡宫", "美景宫", "维也纳国家歌剧院", "纳旭市场", "普拉特游乐园"],
+    "typical_stay_days": 3,
+    "tips": "音乐之都，强烈推荐体验一场歌剧或音乐会",
+    "seasons": {
+      "peak": {"months": [4, 5, 6, 9, 10, 12], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 3], "multiplier": 0.80}
+    }
   },
-  "蒲甘": {
-    "country": "缅甸",
-    "avg_daily_cost_cny": 300,
-    "avg_hotel_price_cny": 160,
-    "must_see": ["阿南达寺", "瑞山都塔", "达玛央吉佛塔", "苏拉玛尼寺", "热气球观日出", "伊洛瓦底江日落"],
+  "萨尔茨堡": {
+    "country": "奥地利",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 850,
+    "must_see": ["米拉贝尔宫", "萨尔茨堡要塞", "莫扎特故居", "粮食胡同", "萨尔茨堡大教堂", "海尔布伦宫"],
     "typical_stay_days": 2,
-    "tips": "日出和日落时分最适合观赏佛塔群"
+    "tips": "莫扎特故乡，音乐之声取景地，可一日游国王湖",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 3, 11], "multiplier": 0.80}
+    }
   },
-  "茵莱湖": {
-    "country": "缅甸",
-    "avg_daily_cost_cny": 300,
-    "avg_hotel_price_cny": 150,
-    "must_see": ["茵莱湖游船", "水上市场", "长颈族村落", "跳猫寺", "浮岛花园", "织布工坊"],
+  "因斯布鲁克": {
+    "country": "奥地利",
+    "avg_daily_cost_cny": 1450,
+    "avg_hotel_price_cny": 820,
+    "must_see": ["黄金屋顶", "北岭缆车", "安布拉斯城堡", "施华洛世奇水晶世界", "玛丽亚·特蕾西亚大街", "宫廷教堂"],
     "typical_stay_days": 2,
-    "tips": "10月至3月气候干爽，适合游湖"
+    "tips": "阿尔卑斯山脚下的城市，冬季滑雪夏季徒步皆宜",
+    "seasons": {
+      "peak": {"months": [1, 2, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.80}
+    }
   },
-  "仰光": {
-    "country": "缅甸",
-    "avg_daily_cost_cny": 400,
-    "avg_hotel_price_cny": 200,
-    "must_see": ["瑞光大金塔", "仰光环城火车", "昂山市场", "苏雷塔", "卡拉威宫", "茵雅湖"],
+  "格拉茨": {
+    "country": "奥地利",
+    "avg_daily_cost_cny": 1300,
+    "avg_hotel_price_cny": 730,
+    "must_see": ["城堡山", "格拉茨老城", "现代美术馆", "军械库博物馆", "穆尔岛", "埃根博格宫"],
     "typical_stay_days": 2,
-    "tips": "最大城市，瑞光大金塔必去"
+    "tips": "奥地利第二大城市，老城区是世界文化遗产",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.20},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "哈尔施塔特": {
+    "country": "奥地利",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 800,
+    "must_see": ["哈尔施塔特湖", "盐矿", "人骨教堂", "世界遗产观景台", "集市广场", "达赫施泰因冰洞"],
+    "typical_stay_days": 2,
+    "tips": "世界最美小镇之一，住宿有限务必提前预订",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 9], "multiplier": 1.40},
+      "off_peak": {"months": [11, 12, 1, 2, 3], "multiplier": 0.75}
+    }
+  },
+  "慕尼黑": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1700,
+    "avg_hotel_price_cny": 950,
+    "must_see": ["玛利亚广场", "新天鹅堡", "慕尼黑王宫", "英国花园", "宝马世界", "圣母教堂", "谷物市场"],
+    "typical_stay_days": 3,
+    "tips": "9-10月啤酒节期间住宿翻倍，需提前数月预订",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 9, 10], "multiplier": 1.35},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "柏林": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 780,
+    "must_see": ["勃兰登堡门", "柏林墙遗址", "博物馆岛", "国会大厦", "查理检查站", "亚历山大广场", "东边画廊"],
+    "typical_stay_days": 3,
+    "tips": "物价在西欧首都中偏低，历史与现代文化并存",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "法兰克福": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 850,
+    "must_see": ["罗马广场", "法兰克福大教堂", "施泰德艺术馆", "老歌剧院", "棕榈园", "美因河畔"],
+    "typical_stay_days": 2,
+    "tips": "欧洲金融中心，适合作为德国旅行的中转站",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.20},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "汉堡": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1500,
+    "avg_hotel_price_cny": 850,
+    "must_see": ["易北爱乐音乐厅", "微缩景观世界", "仓库城", "圣米歇尔教堂", "汉堡港", "阿尔斯特湖", "绳索大街"],
+    "typical_stay_days": 2,
+    "tips": "德国最大港口城市，鱼市和仓库城值得探索",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "科隆": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 780,
+    "must_see": ["科隆大教堂", "霍亨索伦桥", "路德维希博物馆", "巧克力博物馆", "莱茵河游船", "老城区"],
+    "typical_stay_days": 2,
+    "tips": "科隆大教堂是德国最著名的哥特式建筑",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 11], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 3], "multiplier": 0.80}
+    }
+  },
+  "海德堡": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1400,
+    "avg_hotel_price_cny": 780,
+    "must_see": ["海德堡城堡", "老桥", "哲学家小径", "海德堡大学", "主街", "圣灵教堂"],
+    "typical_stay_days": 2,
+    "tips": "德国最浪漫的城市之一，城堡俯瞰老城风光绝佳",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "纽伦堡": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1300,
+    "avg_hotel_price_cny": 730,
+    "must_see": ["纽伦堡城堡", "老城区", "日耳曼国家博物馆", "圣劳伦茨教堂", "美泉", "纽伦堡审判纪念馆"],
+    "typical_stay_days": 2,
+    "tips": "12月圣诞市场是德国最著名的，姜饼和香肠是特色",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.25},
+      "off_peak": {"months": [1, 2, 3], "multiplier": 0.80}
+    }
+  },
+  "德累斯顿": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1200,
+    "avg_hotel_price_cny": 680,
+    "must_see": ["茨温格宫", "圣母教堂", "布吕尔平台", "森帕歌剧院", "绿穹珍宝馆", "王侯队列壁画"],
+    "typical_stay_days": 2,
+    "tips": "易北河上的佛罗伦萨，巴洛克建筑群令人惊叹",
+    "seasons": {
+      "peak": {"months": [5, 6, 7, 8, 9], "multiplier": 1.20},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "罗滕堡": {
+    "country": "德国",
+    "avg_daily_cost_cny": 1300,
+    "avg_hotel_price_cny": 730,
+    "must_see": ["市政厅塔楼", "普伦莱茵", "城墙漫步", "圣诞博物馆", "中世纪犯罪博物馆", "集市广场"],
+    "typical_stay_days": 1,
+    "tips": "浪漫之路上保存最完好的中世纪小城，圣诞氛围极佳",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 12], "multiplier": 1.30},
+      "off_peak": {"months": [1, 2, 3, 11], "multiplier": 0.75}
+    }
+  },
+  "哥本哈根": {
+    "country": "丹麦",
+    "avg_daily_cost_cny": 2200,
+    "avg_hotel_price_cny": 1200,
+    "must_see": ["小美人鱼雕像", "新港", "趣伏里公园", "阿美琳堡宫", "罗森堡宫", "圆塔", "克里斯蒂安堡宫"],
+    "typical_stay_days": 3,
+    "tips": "5-9月日照充足适合出行，自行车是最佳交通工具",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "奥胡斯": {
+    "country": "丹麦",
+    "avg_daily_cost_cny": 1900,
+    "avg_hotel_price_cny": 1050,
+    "must_see": ["老城露天博物馆", "ARoS彩虹全景美术馆", "莫斯格史前博物馆", "奥胡斯大教堂", "植物园", "海滨浴场"],
+    "typical_stay_days": 2,
+    "tips": "丹麦第二大城市，文化氛围浓厚，ARoS美术馆必去",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "欧登塞": {
+    "country": "丹麦",
+    "avg_daily_cost_cny": 1700,
+    "avg_hotel_price_cny": 950,
+    "must_see": ["安徒生博物馆", "安徒生故居", "圣克努特教堂", "菲英村", "欧登塞动物园", "布兰茨艺术中心"],
+    "typical_stay_days": 1,
+    "tips": "安徒生故乡，童话氛围满满，适合亲子游",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "斯德哥尔摩": {
+    "country": "瑞典",
+    "avg_daily_cost_cny": 2100,
+    "avg_hotel_price_cny": 1150,
+    "must_see": ["老城区", "瓦萨沉船博物馆", "市政厅", "斯堪森露天博物馆", "王宫", "ABBA博物馆", "皇后岛"],
+    "typical_stay_days": 3,
+    "tips": "北方威尼斯，夏季白昼极长，冬季可体验北欧圣诞",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "哥德堡": {
+    "country": "瑞典",
+    "avg_daily_cost_cny": 1800,
+    "avg_hotel_price_cny": 1000,
+    "must_see": ["里瑟本游乐园", "哥德堡群岛", "哥德堡美术馆", "海洋博物馆", "哈加老城区", "鱼市场"],
+    "typical_stay_days": 2,
+    "tips": "瑞典美食之都，海鲜品质极佳",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "马尔默": {
+    "country": "瑞典",
+    "avg_daily_cost_cny": 1700,
+    "avg_hotel_price_cny": 950,
+    "must_see": ["旋转大厦", "马尔默城堡", "小广场", "厄勒海峡大桥", "现代美术馆", "国王公园"],
+    "typical_stay_days": 2,
+    "tips": "经厄勒海峡大桥可30分钟到达哥本哈根",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "基律纳": {
+    "country": "瑞典",
+    "avg_daily_cost_cny": 1900,
+    "avg_hotel_price_cny": 1050,
+    "must_see": ["冰旅馆", "阿比斯库国家公园", "北极光观测", "基律纳教堂", "铁矿参观", "狗拉雪橇"],
+    "typical_stay_days": 2,
+    "tips": "冬季看极光、住冰旅馆，夏季体验午夜太阳",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3, 6, 7], "multiplier": 1.35},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "赫尔辛基": {
+    "country": "芬兰",
+    "avg_daily_cost_cny": 2000,
+    "avg_hotel_price_cny": 1100,
+    "must_see": ["岩石教堂", "芬兰堡", "赫尔辛基大教堂", "乌斯别斯基教堂", "西贝柳斯公园", "奥迪市场", "设计博物馆"],
+    "typical_stay_days": 3,
+    "tips": "设计之都，桑拿文化体验不可少",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "罗瓦涅米": {
+    "country": "芬兰",
+    "avg_daily_cost_cny": 1900,
+    "avg_hotel_price_cny": 1050,
+    "must_see": ["圣诞老人村", "北极圈标线", "极地博物馆", "驯鹿雪橇", "北极光观测", "玻璃穹顶小屋"],
+    "typical_stay_days": 2,
+    "tips": "圣诞老人官方故乡，冬季极光和雪地活动是亮点",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.40},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.75}
+    }
+  },
+  "坦佩雷": {
+    "country": "芬兰",
+    "avg_daily_cost_cny": 1700,
+    "avg_hotel_price_cny": 950,
+    "must_see": ["姆明博物馆", "纳辛内乌拉观景塔", "蒸汽机博物馆", "坦佩雷大教堂", "急流观景台", "桑拿体验"],
+    "typical_stay_days": 2,
+    "tips": "芬兰桑拿之都，两湖之间的工业城市已转型为文化中心",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "图尔库": {
+    "country": "芬兰",
+    "avg_daily_cost_cny": 1600,
+    "avg_hotel_price_cny": 900,
+    "must_see": ["图尔库城堡", "图尔库大教堂", "奥拉河畔", "手工业博物馆", "群岛游船", "论坛市场"],
+    "typical_stay_days": 2,
+    "tips": "芬兰最古老城市，夏季可乘船探索群岛",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.25},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "奥斯陆": {
+    "country": "挪威",
+    "avg_daily_cost_cny": 2400,
+    "avg_hotel_price_cny": 1300,
+    "must_see": ["维格兰雕塑公园", "奥斯陆歌剧院", "蒙克博物馆", "阿克什胡斯城堡", "维京船博物馆", "皇宫", "比格迪半岛"],
+    "typical_stay_days": 3,
+    "tips": "全球物价最高城市之一，博物馆通票可节省不少",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "卑尔根": {
+    "country": "挪威",
+    "avg_daily_cost_cny": 2200,
+    "avg_hotel_price_cny": 1200,
+    "must_see": ["布吕根木屋群", "弗洛伊恩山缆车", "鱼市场", "哈当厄尔峡湾", "松恩峡湾", "卑尔根水族馆"],
+    "typical_stay_days": 2,
+    "tips": "峡湾门户城市，彩色木屋是世界遗产，记得带雨具",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.30},
+      "off_peak": {"months": [11, 12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "特罗姆瑟": {
+    "country": "挪威",
+    "avg_daily_cost_cny": 2300,
+    "avg_hotel_price_cny": 1250,
+    "must_see": ["北极大教堂", "极地博物馆", "斯托尔斯泰讷缆车", "北极光观测", "鲸鱼观赏", "午夜太阳"],
+    "typical_stay_days": 2,
+    "tips": "北极之门，冬季极光和鲸鱼观赏，夏季午夜太阳",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 6, 7], "multiplier": 1.35},
+      "off_peak": {"months": [4, 5, 10, 11], "multiplier": 0.80}
+    }
+  },
+  "盖朗厄尔": {
+    "country": "挪威",
+    "avg_daily_cost_cny": 2000,
+    "avg_hotel_price_cny": 1100,
+    "must_see": ["盖朗厄尔峡湾", "七姐妹瀑布", "老鹰之路", "达尔斯尼巴观景台", "峡湾游船", "弗里达尔斯尤威观景台"],
+    "typical_stay_days": 2,
+    "tips": "世界遗产峡湾，仅夏季开放，冬季道路封闭",
+    "seasons": {
+      "peak": {"months": [6, 7, 8], "multiplier": 1.40},
+      "off_peak": {"months": [10, 11, 4, 5], "multiplier": 0.70}
+    }
+  },
+  "内罗毕": {
+    "country": "肯尼亚",
+    "avg_daily_cost_cny": 900,
+    "avg_hotel_price_cny": 450,
+    "must_see": ["内罗毕国家公园", "大象孤儿院", "长颈鹿中心", "肯尼亚国家博物馆", "卡伦·布里克森博物馆", "马赛市场"],
+    "typical_stay_days": 2,
+    "tips": "Safari出发点，大象孤儿院每天仅开放一小时需提前到达",
+    "seasons": {
+      "peak": {"months": [7, 8, 9, 10], "multiplier": 1.30},
+      "off_peak": {"months": [4, 5, 11], "multiplier": 0.75}
+    }
+  },
+  "蒙巴萨": {
+    "country": "肯尼亚",
+    "avg_daily_cost_cny": 800,
+    "avg_hotel_price_cny": 400,
+    "must_see": ["耶稣堡", "迪亚尼海滩", "蒙巴萨老城", "象牙拱门", "海洋公园", "希莫尼海豚之旅"],
+    "typical_stay_days": 3,
+    "tips": "印度洋海滨度假胜地，迪亚尼海滩是东非最美海滩之一",
+    "seasons": {
+      "peak": {"months": [1, 2, 7, 8, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [4, 5, 11], "multiplier": 0.75}
+    }
+  },
+  "马林迪": {
+    "country": "肯尼亚",
+    "avg_daily_cost_cny": 750,
+    "avg_hotel_price_cny": 380,
+    "must_see": ["瓦塔穆海洋国家公园", "郑和纪念柱", "马林迪海滩", "法尔科内利花园", "吉德遗址", "鳄鱼农场"],
+    "typical_stay_days": 2,
+    "tips": "小众海滨小镇，浮潜和深潜条件极佳",
+    "seasons": {
+      "peak": {"months": [1, 2, 7, 8, 9, 10], "multiplier": 1.25},
+      "off_peak": {"months": [4, 5, 11], "multiplier": 0.75}
+    }
+  },
+  "开罗": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 300,
+    "must_see": ["吉萨金字塔", "狮身人面像", "埃及博物馆", "哈利利市场", "萨拉丁城堡", "悬空教堂", "尼罗河游船"],
+    "typical_stay_days": 3,
+    "tips": "金字塔建议清晨前往避开人流和高温",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.75}
+    }
+  },
+  "卢克索": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 600,
+    "avg_hotel_price_cny": 280,
+    "must_see": ["帝王谷", "卡尔纳克神庙", "卢克索神庙", "哈特谢普苏特神殿", "门农巨像", "热气球观日出"],
+    "typical_stay_days": 2,
+    "tips": "世界最大露天博物馆，热气球观日出是经典体验",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.70}
+    }
+  },
+  "阿斯旺": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 260,
+    "must_see": ["菲莱神庙", "阿斯旺大坝", "未完成的方尖碑", "努比亚村", "尼罗河三桅帆船", "植物岛"],
+    "typical_stay_days": 2,
+    "tips": "尼罗河最美段，三桅帆船日落巡航不容错过",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.70}
+    }
+  },
+  "沙姆沙伊赫": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 700,
+    "avg_hotel_price_cny": 350,
+    "must_see": ["拉斯穆罕默德国家公园", "纳马湾", "蓝洞潜水", "沙漠四驱越野", "老市场", "珊瑚礁浮潜"],
+    "typical_stay_days": 3,
+    "tips": "红海顶级潜水胜地，全包度假村性价比很高",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 3, 4, 5], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "赫尔格达": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 650,
+    "avg_hotel_price_cny": 320,
+    "must_see": ["吉夫顿岛", "红海潜水", "沙漠之星", "赫尔格达大水族馆", "新码头", "贝都因沙漠体验"],
+    "typical_stay_days": 3,
+    "tips": "红海度假天堂，全包度假村是主流选择",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 3, 4, 5], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.80}
+    }
+  },
+  "亚历山大": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 550,
+    "avg_hotel_price_cny": 260,
+    "must_see": ["亚历山大图书馆", "盖贝依城堡", "庞贝柱", "蒙塔扎宫", "罗马剧场", "地中海滨海大道"],
+    "typical_stay_days": 2,
+    "tips": "地中海港口城市，海鲜极佳，夏季是埃及人的避暑地",
+    "seasons": {
+      "peak": {"months": [6, 7, 8, 9], "multiplier": 1.20},
+      "off_peak": {"months": [12, 1, 2], "multiplier": 0.80}
+    }
+  },
+  "阿布辛贝": {
+    "country": "埃及",
+    "avg_daily_cost_cny": 500,
+    "avg_hotel_price_cny": 250,
+    "must_see": ["阿布辛贝神庙", "哈索尔神庙", "纳赛尔湖", "声光秀", "努比亚文化体验"],
+    "typical_stay_days": 1,
+    "tips": "拉美西斯二世伟大神庙，每年2月22日和10月22日阳光直射内殿",
+    "seasons": {
+      "peak": {"months": [10, 11, 12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [6, 7, 8], "multiplier": 0.70}
+    }
+  },
+  "_country_defaults": {
+    "斯里兰卡": { "avg_daily_cost_cny": 650, "avg_hotel_price_cny": 350 },
+    "日本": { "avg_daily_cost_cny": 1200, "avg_hotel_price_cny": 650 },
+    "韩国": { "avg_daily_cost_cny": 850, "avg_hotel_price_cny": 420 },
+    "泰国": { "avg_daily_cost_cny": 700, "avg_hotel_price_cny": 350 },
+    "越南": { "avg_daily_cost_cny": 520, "avg_hotel_price_cny": 290 },
+    "马来西亚": { "avg_daily_cost_cny": 550, "avg_hotel_price_cny": 280 },
+    "缅甸": { "avg_daily_cost_cny": 550, "avg_hotel_price_cny": 380 },
+    "柬埔寨": { "avg_daily_cost_cny": 550, "avg_hotel_price_cny": 330 },
+    "印度尼西亚": { "avg_daily_cost_cny": 700, "avg_hotel_price_cny": 400 },
+    "蒙古": { "avg_daily_cost_cny": 550, "avg_hotel_price_cny": 280 },
+    "卡塔尔": { "avg_daily_cost_cny": 1600, "avg_hotel_price_cny": 900 },
+    "文莱": { "avg_daily_cost_cny": 700, "avg_hotel_price_cny": 350 },
+    "马尔代夫": { "avg_daily_cost_cny": 2500, "avg_hotel_price_cny": 1500 },
+    "新加坡": { "avg_daily_cost_cny": 1400, "avg_hotel_price_cny": 800 },
+    "土耳其": { "avg_daily_cost_cny": 800, "avg_hotel_price_cny": 400 },
+    "中国": { "avg_daily_cost_cny": 800, "avg_hotel_price_cny": 450 },
+    "法国": { "avg_daily_cost_cny": 2000, "avg_hotel_price_cny": 1200 },
+    "英国": { "avg_daily_cost_cny": 1800, "avg_hotel_price_cny": 1000 },
+    "意大利": { "avg_daily_cost_cny": 1600, "avg_hotel_price_cny": 900 },
+    "德国": { "avg_daily_cost_cny": 1400, "avg_hotel_price_cny": 780 },
+    "奥地利": { "avg_daily_cost_cny": 1450, "avg_hotel_price_cny": 800 },
+    "丹麦": { "avg_daily_cost_cny": 2000, "avg_hotel_price_cny": 1100 },
+    "瑞典": { "avg_daily_cost_cny": 1900, "avg_hotel_price_cny": 1050 },
+    "芬兰": { "avg_daily_cost_cny": 1800, "avg_hotel_price_cny": 1000 },
+    "挪威": { "avg_daily_cost_cny": 2200, "avg_hotel_price_cny": 1200 },
+    "美国": { "avg_daily_cost_cny": 2200, "avg_hotel_price_cny": 1300 },
+    "澳大利亚": { "avg_daily_cost_cny": 1800, "avg_hotel_price_cny": 1000 },
+    "阿联酋": { "avg_daily_cost_cny": 1800, "avg_hotel_price_cny": 1000 },
+    "埃及": { "avg_daily_cost_cny": 600, "avg_hotel_price_cny": 300 },
+    "肯尼亚": { "avg_daily_cost_cny": 800, "avg_hotel_price_cny": 420 }
   }
 }
