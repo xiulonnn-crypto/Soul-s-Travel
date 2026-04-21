@@ -38,10 +38,8 @@ echo -e "${GREEN}▶ 检查 Python 依赖...${NC}"
 pip3 install -r "$BACKEND_DIR/requirements.txt" -q 2>&1 | grep -v "already satisfied" || true
 
 # 初始化数据库
-if [ ! -f "$BACKEND_DIR/travel.db" ]; then
-  echo -e "${GREEN}▶ 首次运行，导入样例数据...${NC}"
-  python3 "$BACKEND_DIR/seed.py"
-fi
+echo -e "${GREEN}▶ 初始化数据库...${NC}"
+python3 "$BACKEND_DIR/seed.py"
 
 # 检查/安装前端依赖
 if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
@@ -49,42 +47,58 @@ if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
   npm --prefix "$FRONTEND_DIR" install --silent
 fi
 
+# ── 检查端口占用 ──
+FRONTEND_ALREADY_RUNNING=false
+if lsof -i :5000 -sTCP:LISTEN >/dev/null 2>&1; then
+  FRONTEND_ALREADY_RUNNING=true
+  echo -e "${YELLOW}⚠️  端口 5000 已被占用，前端已在运行，跳过前端启动${NC}"
+fi
+
 # ── 后台启动后端 ──
-echo -e "${GREEN}▶ 启动后端 (port 5001)...${NC}"
+echo -e "${GREEN}▶ 启动后端 (port 5002)...${NC}"
 python3 "$BACKEND_DIR/app.py" &
 BACKEND_PID=$!
 
 # 等待后端就绪
 for i in 1 2 3 4 5; do
   sleep 1
-  if curl -s http://localhost:5001/api/health >/dev/null 2>&1; then
+  if curl -s http://localhost:5002/api/health >/dev/null 2>&1; then
     break
   fi
 done
 
 echo ""
-echo -e "  ✅  后端运行中 → ${BLUE}http://localhost:5001${NC}"
-echo -e "  🚀  正在启动前端 → ${BLUE}http://localhost:5000${NC}"
+echo -e "  ✅  后端运行中 → ${BLUE}http://localhost:5002${NC}"
 echo ""
-echo -e "${YELLOW}按 Ctrl+C 同时停止前端和后端${NC}"
+echo -e "${YELLOW}按 Ctrl+C 停止后端${NC}"
 echo "────────────────────────────────────"
 
-# Ctrl+C 清理两个进程
+# Ctrl+C 清理后端
 trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
 
-# 后台等待前端就绪后自动打开浏览器
-(
-  for i in $(seq 1 15); do
-    sleep 1
-    if curl -s http://localhost:5000 >/dev/null 2>&1; then
-      open "http://localhost:5000/"
-      break
-    fi
-  done
-) &
+if [ "$FRONTEND_ALREADY_RUNNING" = true ]; then
+  # 前端已在运行，直接打开浏览器并挂起等待 Ctrl+C
+  open "http://localhost:5000/"
+  echo -e "  🌐  已打开浏览器 → ${BLUE}http://localhost:5000${NC}"
+  echo ""
+  wait $BACKEND_PID
+else
+  echo -e "  🚀  正在启动前端 → ${BLUE}http://localhost:5000${NC}"
+  echo ""
+  # 后台等待前端就绪后自动打开浏览器
+  (
+    for i in $(seq 1 15); do
+      sleep 1
+      if curl -s http://localhost:5000 >/dev/null 2>&1; then
+        open "http://localhost:5000/"
+        break
+      fi
+    done
+  ) &
 
-# 前台启动前端
-npm --prefix "$FRONTEND_DIR" run dev
+  # 前台启动前端
+  npm --prefix "$FRONTEND_DIR" run dev
 
-# 前端退出后同时关闭后端
-kill $BACKEND_PID 2>/dev/null
+  # 前端退出后同时关闭后端
+  kill $BACKEND_PID 2>/dev/null
+fi

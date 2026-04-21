@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Soul's Travel — 一键启动脚本
-# 同时启动后端 (Flask :5001) 和前端 (Vite :3000)
+# 同时启动后端 (Flask :5002) 和前端 (Vite :5000)
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
@@ -34,11 +34,7 @@ pip3 install -r requirements.txt -q
 
 # 初始化数据库并导入样例数据
 echo -e "${GREEN}[2/4] 初始化数据库...${NC}"
-if [ ! -f "$BACKEND_DIR/travel.db" ]; then
-  python3 seed.py
-else
-  echo "      数据库已存在，跳过 seed"
-fi
+python3 seed.py
 
 # 检查前端依赖
 echo -e "${GREEN}[3/4] 检查前端依赖...${NC}"
@@ -52,7 +48,7 @@ fi
 # 启动后端
 echo -e "${GREEN}[4/4] 启动服务...${NC}"
 echo ""
-echo -e "  🐍 后端 → ${BLUE}http://localhost:5001${NC}"
+  echo -e "  🐍 后端 → ${BLUE}http://localhost:5002${NC}"
 echo -e "  ⚛️  前端 → ${BLUE}http://localhost:5000${NC}"
 echo ""
 echo -e "${YELLOW}按 Ctrl+C 停止所有服务${NC}"
