@@ -9,29 +9,46 @@ trips_bp = Blueprint("trips", __name__)
 
 
 def _sync_visited_destinations(session):
-    """汇总已完成行程的 leg，写入 UserProfile.visited_countries_cities。"""
+    """汇总已完成行程的 leg，写入 UserProfile.visited_countries_cities。
+
+    按 (trip_id, country) 分组，每次行程独立一条记录，时间取 Trip.start_date 所在年月。
+    格式：{country: [{"date": "YYYY-MM", "cities": [...]}, ...]}
+    """
     rows = (
-        session.query(Leg.country, Leg.city, Leg.start_date)
-        .join(Trip, Leg.trip_id == Trip.id)
+        session.query(Trip.id, Trip.start_date, Leg.country, Leg.city)
+        .join(Leg, Leg.trip_id == Trip.id)
         .filter(Trip.status == "completed")
         .filter(Trip.is_deleted == False)  # noqa: E712
+        .order_by(Trip.start_date)
         .all()
     )
-    earliest = {}
-    for country, city, start_date in rows:
-        key = (country, city)
-        if key not in earliest or start_date < earliest[key]:
-            earliest[key] = start_date
-    nested = {}
-    for (country, city), d in earliest.items():
-        nested.setdefault(country, {})[city] = f"{d.year:04d}-{d.month:02d}"
+    # {(trip_id, country): {"date": "YYYY-MM", "cities": [...]}}
+    trip_country: dict = {}
+    for trip_id, trip_start, country, city in rows:
+        key = (trip_id, country)
+        if key not in trip_country:
+            trip_country[key] = {
+                "date": f"{trip_start.year:04d}-{trip_start.month:02d}",
+                "cities": [],
+            }
+        if city not in trip_country[key]["cities"]:
+            trip_country[key]["cities"].append(city)
+
+    nested: dict = {}
+    for (_, country), data in trip_country.items():
+        nested.setdefault(country, []).append(data)
+
     profile = _get_or_create_profile(session)
     profile.visited_countries_cities = json.dumps(nested, ensure_ascii=False)
     session.commit()
 
 
-def _parse_date(s):
-    return date.fromisoformat(s)
+def _parse_date(s, fallback=None):
+    if s:
+        return date.fromisoformat(s)
+    if fallback:
+        return fallback if isinstance(fallback, date) else date.fromisoformat(fallback)
+    return None
 
 
 @trips_bp.route("/api/trips", methods=["GET"])
@@ -50,7 +67,7 @@ def list_trips():
         if search:
             q = q.filter(Trip.title.contains(search))
         trips = q.order_by(Trip.start_date.desc()).all()
-        return jsonify([t.to_dict() for t in trips])
+        return jsonify([t.to_dict(include_summary=True) for t in trips])
     finally:
         session.close()
 
@@ -72,10 +89,15 @@ def create_trip():
     session = get_session()
     try:
         data = request.json
+        trip_start = _parse_date(data.get("start_date"))
+        trip_end = _parse_date(data.get("end_date"))
+        if not trip_start or not trip_end:
+            return jsonify({"error": "请填写行程开始和结束日期"}), 400
+
         trip = Trip(
             title=data["title"],
-            start_date=_parse_date(data["start_date"]),
-            end_date=_parse_date(data["end_date"]),
+            start_date=trip_start,
+            end_date=trip_end,
             traveler_count=data.get("traveler_count", 1),
             description=data.get("description"),
             cover_image=data.get("cover_image"),
@@ -90,17 +112,18 @@ def create_trip():
                 order_index=leg_data["order_index"],
                 city=leg_data["city"],
                 country=leg_data["country"],
-                start_date=_parse_date(leg_data["start_date"]),
-                end_date=_parse_date(leg_data["end_date"]),
+                start_date=_parse_date(leg_data.get("start_date"), trip_start),
+                end_date=_parse_date(leg_data.get("end_date"), trip_end),
             )
             session.add(leg)
             session.flush()
 
             for day_data in leg_data.get("days", []):
+                day_date = _parse_date(day_data.get("date"), trip_start)
                 day = TripDay(
                     leg_id=leg.id,
                     day_number=day_data["day_number"],
-                    date=_parse_date(day_data["date"]),
+                    date=day_date,
                     description=day_data.get("description"),
                     highlights=day_data.get("highlights"),
                     activities=json.dumps(day_data.get("activities", []), ensure_ascii=False),
@@ -118,7 +141,7 @@ def create_trip():
                 amount=exp_data["amount"],
                 currency=exp_data.get("currency", "CNY"),
                 description=exp_data.get("description"),
-                date=_parse_date(exp_data["date"]),
+                date=_parse_date(exp_data.get("date"), trip_start),
             )
             session.add(expense)
 
@@ -147,12 +170,15 @@ def update_trip(trip_id):
         for field in ["title", "description", "cover_image", "status"]:
             if field in data:
                 setattr(trip, field, data[field])
-        if "start_date" in data:
+        if "start_date" in data and data["start_date"]:
             trip.start_date = _parse_date(data["start_date"])
-        if "end_date" in data:
+        if "end_date" in data and data["end_date"]:
             trip.end_date = _parse_date(data["end_date"])
         if "traveler_count" in data:
             trip.traveler_count = data["traveler_count"]
+
+        trip_start = trip.start_date
+        trip_end = trip.end_date
 
         if "legs" in data:
             for leg in trip.legs:
@@ -165,17 +191,18 @@ def update_trip(trip_id):
                     order_index=leg_data["order_index"],
                     city=leg_data["city"],
                     country=leg_data["country"],
-                    start_date=_parse_date(leg_data["start_date"]),
-                    end_date=_parse_date(leg_data["end_date"]),
+                    start_date=_parse_date(leg_data.get("start_date"), trip_start),
+                    end_date=_parse_date(leg_data.get("end_date"), trip_end),
                 )
                 session.add(leg)
                 session.flush()
 
                 for day_data in leg_data.get("days", []):
+                    day_date = _parse_date(day_data.get("date"), trip_start)
                     day = TripDay(
                         leg_id=leg.id,
                         day_number=day_data["day_number"],
-                        date=_parse_date(day_data["date"]),
+                        date=day_date,
                         description=day_data.get("description"),
                         highlights=day_data.get("highlights"),
                         activities=json.dumps(day_data.get("activities", []), ensure_ascii=False),
@@ -196,7 +223,7 @@ def update_trip(trip_id):
                     amount=exp_data["amount"],
                     currency=exp_data.get("currency", "CNY"),
                     description=exp_data.get("description"),
-                    date=_parse_date(exp_data["date"]),
+                    date=_parse_date(exp_data.get("date"), trip_start),
                 )
                 session.add(expense)
 

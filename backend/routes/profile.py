@@ -20,11 +20,27 @@ def _get_or_create_profile(session):
     return profile
 
 
+def _is_old_visited_format(visited: dict) -> bool:
+    """旧格式：{country: {city: date}}；新格式：{country: [{date, cities}]}。"""
+    return any(isinstance(v, dict) for v in visited.values())
+
+
 @profile_bp.route("/api/profile", methods=["GET"])
 def get_profile():
     session = get_session()
     try:
         profile = _get_or_create_profile(session)
+        # 检测旧格式并自动迁移为按行程聚合的新格式
+        if profile.visited_countries_cities:
+            import json as _json
+            try:
+                visited = _json.loads(profile.visited_countries_cities)
+                if visited and _is_old_visited_format(visited):
+                    from routes.trips import _sync_visited_destinations
+                    _sync_visited_destinations(session)
+                    profile = _get_or_create_profile(session)
+            except (_json.JSONDecodeError, Exception):
+                pass
         return jsonify(profile.to_dict())
     except Exception as e:
         session.rollback()

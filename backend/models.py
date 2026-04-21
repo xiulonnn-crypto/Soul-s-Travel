@@ -26,8 +26,9 @@ class Trip(Base):
     legs = relationship("Leg", back_populates="trip", cascade="all, delete-orphan",
                         order_by="Leg.order_index")
     expenses = relationship("Expense", back_populates="trip", cascade="all, delete-orphan")
+    evaluation = relationship("TripEvaluation", uselist=False, back_populates="trip")
 
-    def to_dict(self, include_legs=False, include_expenses=False):
+    def to_dict(self, include_legs=False, include_expenses=False, include_summary=False):
         d = {
             "id": self.id,
             "title": self.title,
@@ -41,6 +42,17 @@ class Trip(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+        if include_summary:
+            legs = self.legs
+            seen = []
+            for leg in legs:
+                label = leg.city if leg.country == "中国" else leg.country
+                if label and label != "[待确认]" and label not in seen:
+                    seen.append(label)
+            d["destination_label"] = " · ".join(seen) if seen else ""
+            d["leg_count"] = len(legs)
+            d["total_expense"] = sum(e.amount for e in self.expenses)
+            d["evaluation_score"] = self.evaluation.overall_score if self.evaluation else None
         if include_legs:
             d["legs"] = [leg.to_dict(include_days=True) for leg in self.legs]
         if include_expenses:
@@ -150,7 +162,7 @@ class TripEvaluation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    trip = relationship("Trip")
+    trip = relationship("Trip", back_populates="evaluation")
 
     def to_dict(self):
         return {

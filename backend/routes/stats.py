@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from database import get_session
 from models import Trip, Leg, Expense
 
 stats_bp = Blueprint("stats", __name__)
+
+
+PENDING_PLACEHOLDER = "[待确认]"
 
 
 @stats_bp.route("/api/stats/overview")
@@ -17,8 +20,10 @@ def overview():
         cities = set()
         for t in trips:
             for leg in t.legs:
-                countries.add(leg.country)
-                cities.add(leg.city)
+                if leg.country and leg.country != PENDING_PLACEHOLDER:
+                    countries.add(leg.country)
+                if leg.city and leg.city != PENDING_PLACEHOLDER:
+                    cities.add(leg.city)
         total_expense = session.query(func.sum(Expense.amount)).scalar() or 0
         return jsonify({
             "total_trips": total_trips,
@@ -36,12 +41,17 @@ def overview():
 def destinations():
     session = get_session()
     try:
-        legs = session.query(Leg).join(Trip).filter(Trip.status == "completed", Trip.is_deleted == False).all()  # noqa: E712
+        trips = session.query(Trip).filter(Trip.status == "completed", Trip.is_deleted == False).all()  # noqa: E712
         country_counts = {}
         city_counts = {}
-        for leg in legs:
-            country_counts[leg.country] = country_counts.get(leg.country, 0) + 1
-            city_counts[leg.city] = city_counts.get(leg.city, 0) + 1
+        for trip in trips:
+            seen_countries = set()
+            for leg in trip.legs:
+                if leg.country and leg.country != PENDING_PLACEHOLDER and leg.country not in seen_countries:
+                    seen_countries.add(leg.country)
+                    country_counts[leg.country] = country_counts.get(leg.country, 0) + 1
+                if leg.city and leg.city != PENDING_PLACEHOLDER:
+                    city_counts[leg.city] = city_counts.get(leg.city, 0) + 1
         return jsonify({
             "countries": sorted(country_counts.items(), key=lambda x: -x[1]),
             "cities": sorted(city_counts.items(), key=lambda x: -x[1]),
@@ -73,11 +83,19 @@ def expense_stats():
                 "per_person_per_day": round(total / t.traveler_count / days, 2),
             })
 
+        by_year = session.query(
+            extract("year", Trip.start_date).label("year"),
+            func.sum(Expense.amount),
+        ).join(Expense).filter(
+            Trip.is_deleted == False  # noqa: E712
+        ).group_by("year").order_by("year").all()
+
         return jsonify({
             "by_category": [{"category": c, "total": round(t, 2)} for c, t in by_category],
             "by_trip": [{"trip_id": tid, "title": title, "total": round(amt, 2)}
                         for tid, title, amt in by_trip],
             "per_day_trend": per_day_trend,
+            "by_year": [{"year": int(y), "total": round(amt, 2)} for y, amt in by_year],
         })
     finally:
         session.close()
