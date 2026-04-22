@@ -178,6 +178,50 @@ _LOCAL_PLACE_RE = re.compile(
     r'景点|景区|餐厅|商场|饭店|宾馆')
 
 
+# ---------------------------------------------------------------------------
+# 活动难度加权：不同活动耗时与体力差异显著，纯数量难以反映真实强度
+# ---------------------------------------------------------------------------
+
+# 高强度（1.5×）：半日/全日耗时或体力要求较高的活动
+_HIGH_DIFFICULTY_ACTIVITY = re.compile(
+    r'山岳|山脉|[\u4e00-\u9fa5]+山$|[\u4e00-\u9fa5]+[岳峰]$|'
+    r'徒步|登山|爬山|攀登|[Hh]ik(?:e|ing)|[Tt]rek|'
+    r'保护区|国家公园|自然公园|森林公园|'
+    r'博物馆|美术馆|科技馆|纪念馆|'
+    r'皇宫|城堡|古城|古镇|'
+    r'潜水|浮潜|[Ss]nork|[Dd]iving|滑雪|[Ss]ki(?:ing)?\b|'
+    r'主题公园|动物园|水族馆|游乐园|迪士尼|环球影城'
+)
+
+# 低强度（0.5×）：短时/顺路/轻松参与的活动
+_LOW_DIFFICULTY_ACTIVITY = re.compile(
+    r'餐厅|餐室|饭店|小吃店|'
+    r'夜市|集市|市场|商场|购物中心|百货|'
+    r'广场|摩天轮|游轮|码头|'
+    r'咖啡馆?|奶茶店|酒吧|夜店|'
+    r'[Mm]all\b|[Mm]arket\b|[Cc]af[eé]\b|[Bb]ar\b'
+)
+
+
+def _activity_load_weight(name):
+    """按活动名关键词返回难度权重：高强度 1.5，低强度 0.5，其余 1.0。"""
+    if not isinstance(name, str):
+        return 1.0
+    s = name.strip()
+    if not s:
+        return 1.0
+    if _HIGH_DIFFICULTY_ACTIVITY.search(s):
+        return 1.5
+    if _LOW_DIFFICULTY_ACTIVITY.search(s):
+        return 0.5
+    return 1.0
+
+
+def _day_activity_load(day):
+    """单日加权活动量（sum of 难度权重）。"""
+    return sum(_activity_load_weight(a) for a in day.get("activities", []))
+
+
 def _is_flight_expense(e):
     """判断是否为城际/国际大交通，应排除出日均花费计算。"""
     if e.get("category") != "交通":
@@ -299,14 +343,19 @@ def _compute_cost_metrics(trip, legs, expenses, benchmarks):
 
 
 def _compute_pace_metrics(legs, benchmarks=None):
-    """行程节奏评分：按日对照城市理想区间，区分交通日；方差仅计非交通日。"""
+    """行程节奏评分：按难度加权的日活动量对照城市理想区间，区分交通日；
+    方差仅计非交通日。
+    """
     benchmarks = benchmarks or {}
     daily_scores = []
     daily_counts = []
+    daily_loads = []
     sightseeing_counts = []
+    sightseeing_loads = []
     transit_day_count = 0
     busiest_day = None
     busiest_count = 0
+    busiest_load = 0.0
 
     for leg in legs:
         city = leg.get("city", "")
@@ -317,17 +366,22 @@ def _compute_pace_metrics(legs, benchmarks=None):
         for day in leg.get("days", []):
             activities = day.get("activities", [])
             count = len(activities)
+            load = _day_activity_load(day)
             daily_counts.append(count)
+            daily_loads.append(load)
             is_transit = _is_transit_day(day)
             if is_transit:
                 transit_day_count += 1
             else:
                 sightseeing_counts.append(count)
+                sightseeing_loads.append(load)
 
             lo, hi = _ideal_activity_range_for_day(is_transit, must_see, typical)
-            daily_scores.append(_pace_day_score(count, lo, hi))
+            daily_scores.append(_pace_day_score(load, lo, hi))
 
-            if count > busiest_count:
+            # busiest 按加权活动量选，保留原始 count 作为展示
+            if load > busiest_load:
+                busiest_load = load
                 busiest_count = count
                 busiest_day = day.get("day_number")
 
@@ -335,30 +389,36 @@ def _compute_pace_metrics(legs, benchmarks=None):
         return {
             "score": 70,
             "avg_activities": 0,
+            "avg_load": 0.0,
             "busiest_day": None,
             "busiest_count": 0,
+            "busiest_load": 0.0,
             "transit_day_count": 0,
         }
 
     base_score = sum(daily_scores) / len(daily_scores)
 
-    # 仅非交通日的活动数方差惩罚（避免跨城日拉低均值导致误判）
-    if len(sightseeing_counts) > 1:
-        mean_sc = sum(sightseeing_counts) / len(sightseeing_counts)
-        variance = sum((c - mean_sc) ** 2 for c in sightseeing_counts) / len(sightseeing_counts)
+    # 仅非交通日的加权活动量方差惩罚（避免跨城日拉低均值导致误判）
+    if len(sightseeing_loads) > 1:
+        mean_sl = sum(sightseeing_loads) / len(sightseeing_loads)
+        variance = sum((x - mean_sl) ** 2 for x in sightseeing_loads) / len(sightseeing_loads)
         penalty = min(10, variance * 2)
         base_score -= penalty
 
     if transit_day_count > 0 and sightseeing_counts:
-        avg_display = sum(sightseeing_counts) / len(sightseeing_counts)
+        avg_count_display = sum(sightseeing_counts) / len(sightseeing_counts)
+        avg_load_display = sum(sightseeing_loads) / len(sightseeing_loads)
     else:
-        avg_display = sum(daily_counts) / len(daily_counts)
+        avg_count_display = sum(daily_counts) / len(daily_counts)
+        avg_load_display = sum(daily_loads) / len(daily_loads)
 
     return {
         "score": _clamp(base_score),
-        "avg_activities": round(avg_display, 1),
+        "avg_activities": round(avg_count_display, 1),
+        "avg_load": round(avg_load_display, 1),
         "busiest_day": busiest_day,
         "busiest_count": busiest_count,
+        "busiest_load": round(busiest_load, 1),
         "transit_day_count": transit_day_count,
     }
 
@@ -591,21 +651,24 @@ def _evaluate_city(leg, expenses, benchmarks):
         spot_pct = 100.0
     spot_sub = _clamp(min(100, spot_pct * 0.9 + 10))
 
-    # 节奏子分（与整体维度一致的按日模型）
+    # 节奏子分（与整体维度一致的按难度加权日模型）
     sightseeing_counts = []
+    sightseeing_loads = []
     if days:
         daily_scores = []
         for d in days:
             c = len(d.get("activities", []))
+            load = _day_activity_load(d)
             is_t = _is_transit_day(d)
             lo, hi = _ideal_activity_range_for_day(is_t, must_see, typical_stay)
-            daily_scores.append(_pace_day_score(c, lo, hi))
+            daily_scores.append(_pace_day_score(load, lo, hi))
             if not is_t:
                 sightseeing_counts.append(c)
+                sightseeing_loads.append(load)
         pace_mean = sum(daily_scores) / len(daily_scores)
-        if len(sightseeing_counts) > 1:
-            msc = sum(sightseeing_counts) / len(sightseeing_counts)
-            var = sum((x - msc) ** 2 for x in sightseeing_counts) / len(sightseeing_counts)
+        if len(sightseeing_loads) > 1:
+            msl = sum(sightseeing_loads) / len(sightseeing_loads)
+            var = sum((x - msl) ** 2 for x in sightseeing_loads) / len(sightseeing_loads)
             pace_mean -= min(10, var * 2)
         pace_sub = _clamp(pace_mean)
     else:
@@ -615,6 +678,9 @@ def _evaluate_city(leg, expenses, benchmarks):
         avg_activities = sum(sightseeing_counts) / len(sightseeing_counts)
     else:
         avg_activities = activities_count / num_days if num_days else 0
+    avg_load = (
+        sum(sightseeing_loads) / len(sightseeing_loads) if sightseeing_loads else 0.0
+    )
 
     # 停留天数子分
     typical = bm.get("typical_stay_days", 3)
@@ -637,9 +703,9 @@ def _evaluate_city(leg, expenses, benchmarks):
         tags.append({"type": "positive", "text": "景点全面"})
     elif spot_pct < 80:
         tags.append({"type": "warning", "text": "景点覆盖不足"})
-    if avg_activities > 4:
+    if avg_load > 4.0:
         tags.append({"type": "warning", "text": "节奏偏紧"})
-    elif avg_activities < 1.5:
+    elif avg_load and avg_load < 1.5:
         tags.append({"type": "warning", "text": "行程较松散"})
     if num_days < typical - 1:
         tags.append({"type": "warning", "text": "停留偏短"})
@@ -755,30 +821,36 @@ def _generate_cost_tags(m):
 
 
 def _generate_pace_text(m):
-    avg = m["avg_activities"]
+    avg_count = m["avg_activities"]
+    avg_load = m.get("avg_load", avg_count)
     busiest = m["busiest_day"]
     busiest_count = m["busiest_count"]
+    busiest_load = m.get("busiest_load", busiest_count)
     transit_n = m.get("transit_day_count", 0)
 
     if transit_n > 0:
         parts = [
             f"含 {transit_n} 个跨城交通日",
-            f"非交通日平均每天安排 {avg} 个活动",
+            f"非交通日平均每天 {avg_count} 个活动（按难度加权活动量 {avg_load}）",
         ]
     else:
-        parts = [f"平均每天安排 {avg} 个活动"]
+        parts = [f"平均每天 {avg_count} 个活动（按难度加权活动量 {avg_load}）"]
 
-    if 2 <= avg <= 3:
+    # 以加权活动量为主要判据：2.0-3.5 为适中区间
+    if 2.0 <= avg_load <= 3.5:
         parts.append("节奏适中，松紧得当")
-    elif avg > 4:
+    elif avg_load > 4.0:
         parts.append("整体偏紧凑，建议适当留出休息时间")
-    elif avg < 1.5:
+    elif avg_load < 1.5:
         parts.append("行程较为宽松，可适当增加体验项目")
 
     text = "，".join(parts) + "。"
 
-    if busiest and busiest_count > 4:
-        text += f"其中 Day{busiest} 安排了 {busiest_count} 个活动，略显密集。"
+    if busiest and busiest_load > 5.0:
+        text += (
+            f"其中 Day{busiest} 安排了 {busiest_count} 个活动（活动量 {busiest_load}），"
+            f"略显密集。"
+        )
 
     return text
 
@@ -789,12 +861,13 @@ def _generate_pace_tags(m):
     if transit_n >= 2:
         tags.append({"type": "info", "text": f"含 {transit_n} 个交通日"})
 
-    avg = m["avg_activities"]
-    if 2 <= avg <= 3:
+    avg_load = m.get("avg_load", m["avg_activities"])
+    busiest_load = m.get("busiest_load", m["busiest_count"])
+    if 2.0 <= avg_load <= 3.5:
         tags.append({"type": "positive", "text": "节奏适中"})
-    elif avg > 4:
+    elif avg_load > 4.0:
         tags.append({"type": "warning", "text": "部分天数偏紧"})
-    if m["busiest_day"] and m["busiest_count"] > 4:
+    if m["busiest_day"] and busiest_load > 5.0:
         tags.append({"type": "warning", "text": f"Day{m['busiest_day']} 偏满"})
     return tags
 
@@ -941,7 +1014,7 @@ def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks,
             )
 
     # 基于节奏的建议
-    if pace_m["avg_activities"] > 4:
+    if pace_m.get("avg_load", pace_m["avg_activities"]) > 4.0:
         suggestions.append(
             "整体行程偏紧凑，建议每天安排 2-3 个核心景点并预留休息和自由探索时间"
         )

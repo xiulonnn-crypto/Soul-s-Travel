@@ -629,44 +629,54 @@ def _build_activity_category_map(text):
     """Extract {activity_name: expense_category} from PDF detail page type labels.
 
     穷游 PDF detail pages follow this structure after normalize:
-        景点名称
-        类型标签  (e.g. "其他美食", "博物馆", "韩国料理")
+        景点名称 (可能形式：纯 CJK / CJK+双写英文 / 英文前缀+CJK 后缀 / 跨两行)
+        类型标签 (e.g. "其他美食", "博物馆", "动物园", "国家公园", "街区")
         地址 ...
 
-    We scan line-pairs and map known type keywords to expense categories.
-    Only short type-label lines (≤20 chars) are considered to avoid false positives.
+    Anchor on the type-label line (which is always short & well-formed) and
+    scan BACKWARD up to 4 non-empty lines to find the nearest line containing
+    CJK — its first CJK run is the attraction name. This tolerates bilingual
+    name lines whose length exceeds 20 chars due to doubled English letters
+    that CJK-only dedup in `_normalize` does not collapse.
     """
     _TYPE_RULES = [
         (r'美食|料理|小吃|餐厅|咖啡|拉面|寿司|烧肉|火锅', '餐饮'),
-        (r'博物馆|主题公园|游乐|缆车|观景|遗址|神社|寺庙|城堡|宫殿', '门票'),
+        (r'博物馆|主题公园|游乐|缆车|观景|遗址|神社|寺庙|城堡|宫殿|'
+         r'动物园|公园|自然风光|地标|建筑|街区|集市|夜市|活动', '门票'),
         (r'购物|免税|百货|商圈|化妆|时尚', '购物'),
     ]
     _SKIP_PREFIX = re.compile(
         r'^(地址|时间|交通|票价|介绍|提示|Tips|P\d|\d|·| |\|)'
     )
+    _CJK_RUN = re.compile(r'[\u4e00-\u9fff]{2,15}')
     result = {}
     lines = [ln.strip() for ln in text.split('\n')]
-    for i, line in enumerate(lines[:-1]):
-        # Candidate name line: 2-20 chars, contains CJK, not a field prefix
-        if not (2 <= len(line) <= 20):
-            continue
-        if not re.search(r'[\u4e00-\u9fff]', line):
+    for i, line in enumerate(lines):
+        # Type-label line: short, no skip prefix, matches a type keyword.
+        if not (2 <= len(line) <= 15):
             continue
         if _SKIP_PREFIX.match(line):
             continue
-        # Find next non-empty line as type candidate
-        for j in range(i + 1, min(i + 3, len(lines))):
-            nxt = lines[j]
-            if not nxt:
-                continue
-            if len(nxt) > 20 or _SKIP_PREFIX.match(nxt):
+        cat = None
+        for pat, c in _TYPE_RULES:
+            if re.search(pat, line, re.IGNORECASE):
+                cat = c
                 break
-            for pat, cat in _TYPE_RULES:
-                if re.search(pat, nxt, re.IGNORECASE):
-                    name_m = re.match(r'([\u4e00-\u9fff]{2,15})', line)
-                    if name_m:
-                        result[name_m.group(1)] = cat
-            break
+        if cat is None:
+            continue
+        # Scan backward up to 4 non-empty lines for the nearest CJK name.
+        for j in range(i - 1, max(-1, i - 5), -1):
+            prev = lines[j]
+            if not prev:
+                continue
+            if _SKIP_PREFIX.match(prev):
+                break
+            name_m = _CJK_RUN.search(prev)
+            if name_m:
+                # Don't overwrite: if the same name appeared for multiple
+                # type labels, keep the first (nearest preceding) mapping.
+                result.setdefault(name_m.group(0), cat)
+                break
     return result
 
 
@@ -680,12 +690,21 @@ def _parse_expenses(text, start_date=None):
     Original currency and amount are appended to the description for traceability.
     Uses '第N天' headers to assign dates. Does NOT deduplicate.
     """
+    # 关键字表同时覆盖两种 description 来源：
+    #   1) 穷游 PDF 费用表的裸类型标签（如「美食」「活动」「GOCITY」）；
+    #   2) 穷游 PDF 费用表的景点名（如「爱丁堡城堡」「大英博物馆」「游艇」）。
+    # `活动` / `游艇` 等在中文语境下偶尔有歧义，但在行程费用表里几乎都指门票型消费，
+    # 且交通/住宿/餐饮规则按顺序在前，真正属于那几类的条目不会误中门票。
     CATEGORY_RULES = [
-        (r'交通|机票|航班|火车|高铁|大巴|船|包车|飞机|打车|出租车|的士|网约车|Grab', '交通'),
-        (r'酒店|宾馆|民宿|住宿|Hotel|hostel|客栈|旅馆|度假村', '住宿'),
-        (r'午餐|晚餐|早餐|餐饮|餐厅|饭', '餐饮'),
-        (r'门票|景点|入场|一日游|半日游|游览', '门票'),
-        (r'购物|纪念品', '购物'),
+        (r'交通|机票|航班|火车|高铁|大巴|船|包车|飞机|打车|出租车|的士|网约车|'
+         r'Grab|地铁|巴士|轮渡|渡轮', '交通'),
+        (r'酒店|宾馆|民宿|住宿|Hotel|hostel|客栈|旅馆|度假村|Resort|Inn|Lodge', '住宿'),
+        (r'午餐|晚餐|早餐|餐饮|餐厅|饭|美食|小吃|料理|咖啡|拉面|寿司|火锅|烧肉', '餐饮'),
+        (r'门票|景点|入场|一日游|半日游|游览|活动|博物馆|美术馆|动物园|水族馆|'
+         r'植物园|城堡|宫殿|宫|主题乐园|主题公园|游乐园|乐园|游乐|缆车|观景|'
+         r'遗址|神社|寺庙|瀑布|Go\s*City|GOCITY|Skyline|Luge|滑车|滑索|'
+         r'蹦极|潜水|游艇', '门票'),
+        (r'购物|纪念品|免税|百货|商圈', '购物'),
     ]
     # Build activity-type lookup from PDF detail pages (e.g. 牛家→其他美食→餐饮)
     activity_cat = _build_activity_category_map(text)

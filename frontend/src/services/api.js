@@ -16,6 +16,8 @@ export const statsApi = {
   overview: () => api.get('/stats/overview').then(r => r.data),
   destinations: () => api.get('/stats/destinations').then(r => r.data),
   expenses: () => api.get('/stats/expenses').then(r => r.data),
+  highlights: () => api.get('/stats/highlights').then(r => r.data),
+  timeline: () => api.get('/stats/timeline').then(r => r.data),
 }
 
 export const shareApi = {
@@ -38,9 +40,10 @@ export const tripDayApi = {
 
 export const parseApi = {
   text: (text) => api.post('/parse', { text }).then(r => r.data),
-  file: (file) => {
+  file: (file, opts = {}) => {
     const form = new FormData()
     form.append('file', file)
+    if (opts.contextYear) form.append('context_year', String(opts.contextYear))
     return api.post('/parse', form).then(r => r.data)
   },
   url: (url) => api.post('/parse/url', { url }).then(r => r.data),

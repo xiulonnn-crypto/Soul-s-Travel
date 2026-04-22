@@ -125,6 +125,32 @@ npm run lint                         # ESLint 检查
 
 ---
 
+## CHANGELOG 书写规范
+
+`CHANGELOG.md` 面向最终用户，不是开发日志。每次新增条目前对照下面四条铁律：
+
+1. **每条都有粗体子标题**：`- **标题**：1–3 句描述`，标题一眼概括「用户看到的变化」。
+2. **1–3 句精炼描述**：先说之前的现象/痛点，再说现在的行为；避免展开实现细节。
+3. **无代码标识符**：不写文件名（`ai_parser.py`）、函数名（`parse_text()`）、类名（`TripCard`）、配置键、库名（`pdfplumber` / `jieba` / `Playwright` 等）；用功能性语言替代。
+4. **无敏感/内部信息**：不暴露技术栈选型、算法名（TF-IDF / LinearSVC）、测试数量、DB 类型、接口路径、枚举到的代码常量等。
+
+**版本头**：`## [x.y.z] - YYYY-MM-DD - 一句话主题摘要`。主题摘要是纯文本，不带粗体、不带全角冒号，也不能是某条 bullet 的半句截断。
+
+**参考范本**：本仓库 `CHANGELOG.md` 里的 `[0.1.0]` 段，以及 `../us-stock-trading-assistant/CHANGELOG.md`、`../trading-calculate/CHANGELOG.md` 的任意已发布版本。
+
+**自动化守护**：
+
+- `.githooks/pre-push` + `.githooks/bump_changelog.py`：推送时把 `[Unreleased]` 晋升为版本块，并剥离 `feat:` / `> Theme:` 等技术遗留。**新 clone 或换机器后**务必执行一次激活：
+
+  ```bash
+  git config core.hooksPath .githooks
+  ```
+
+- `backend/tests/test_bump_changelog.py`：锁住晋升脚本的清洗逻辑，防止 hook 倒退。
+- `backend/tests/test_changelog_format.py`：以 pytest 扫描 `CHANGELOG.md`，若 bullet 缺失粗体子标题、或出现 `*.py` / `*.jsx` / `func()` 这类代码标识符反引号、或版本头摘要残留 bullet 粗体，会直接失败。
+
+---
+
 ## LLM 编码准则
 
 ### 1. Think Before Coding

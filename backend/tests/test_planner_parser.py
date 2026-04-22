@@ -1,0 +1,333 @@
+"""PiTravel-style planner parser tests.
+
+Inputs are literal multi-line strings that mirror the real rapidocr output
+observed on /Users/soul/Downloads/IMG_4800.JPG. The extractor outputs one
+visual row per line and rapidocr emits day headers in SIX observed variants
+from this single document (due to font/weakness), so every variant must stay
+green; regressing any one silently drops a day from the split.
+
+Observed header variants in the sample (all from one extractor, one doc):
+  '09.29/周日', '09.30/周-', '10.01/周二', '10.04/月五', '10.07/-', and
+  canonical '10.05/周六'. The parser must NOT require a valid weekday char.
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from datetime import datetime
+
+import pytest
+
+from services.planner_parser import parse_planner_text
+
+
+# ---------------------------------------------------------------------------
+# Fixture: literal OCR output from the real IMG_4800.JPG (verbatim)
+# ---------------------------------------------------------------------------
+
+UK_9DAY_OCR = """PI TFAVEL  ITINERARY
+英国9日游
+SouL的09.29至10.079天8晚行程单
+09.29/周日
+四号航站楼
+伦敦帕丁顿车站
+伦敦摄政公园万豪酒店
+大英博物馆
+OPSO
+摄政公园
+伦敦摄政公园万豪酒店
+09.30/周-
+伦敦摄政公园万豪酒店
+Madame Tussauds London
+Baker Street
+Victoriaand Albert Museum
+自然史博物馆
+科学博物馆
+伦敦摄政公园万豪酒店
+10.01/周二
+伦敦摄政公园万豪酒店
+圣保罗座堂
+伦敦大火纪念碑
+伦敦塔桥
+伦敦塔
+Westminster Abbey
+珠宝塔
+大本钟
+伦敦眼
+伦敦摄政公园万豪酒店
+10.02/周三
+伦敦摄政公园万豪酒店
+海德公园
+白金汉宫
+Westminster Pier
+Greenwich Pier
+格林威治天文台
+Golden Chippy
+卡蒂萨克号
+旧皇家海军学院
+Putney Pier
+London Bridge City Pier
+碎片大厦
+伦敦摄政公园万豪酒店
+10.03/周四
+伦敦摄政公园万豪酒店
+National express stop, Liverpool street
+斯坦斯特德机场  11:30
+爱丁堡机场  12:50
+爱丁堡城堡
+Makars Mash Bar
+万豪爱丁堡官邸酒店
+10.04/月五
+万豪爱丁堡官邸酒店
+The Balmoral
+Luss View Point
+洛蒙德湖
+格伦科
+三姐妹山停车场
+威廉堡
+格伦芬南
+10.05/周六
+波特里
+Old Man of Storr
+Kilt Rock & Mealt Falls Viewpoint
+Public Parking
+内斯湖
+10.06/周日
+苏格兰高地
+皮特洛赫里
+圣安德鲁斯
+福斯桥
+Moxy Edinburgh Airport
+10.07/-
+爱丁堡机场  06:00
+卢顿机场  07:20
+Heathrow Airport  14:05
+北京大兴国际机场  08:35
+"""
+
+
+# ---------------------------------------------------------------------------
+# End-to-end shape + leaf-value assertions
+# ---------------------------------------------------------------------------
+
+
+def test_parses_uk_9day_full_shape():
+    """Full end-to-end: title, date range, legs, accommodation, 9 days total."""
+    result = parse_planner_text(UK_9DAY_OCR)
+
+    assert result['type'] == 'trip'
+    assert result['expenses'] == []
+
+    trip = result['trip']
+    assert trip['title'] == '英国9日游'
+    assert trip['status'] == 'completed'
+    assert trip['traveler_count'] == 1
+
+    cur_year = datetime.now().year
+    assert trip['start_date'] == f'{cur_year}-09-29'
+    assert trip['end_date'] == f'{cur_year}-10-07'
+
+    legs = result['legs']
+    assert len(legs) == 2, f'expected 2 legs (伦敦 → 爱丁堡), got {len(legs)}'
+    london, edinburgh = legs
+
+    assert london['city'] == '伦敦'
+    assert london['country'] == '英国'
+    assert london['start_date'] == f'{cur_year}-09-29'
+    assert london['end_date'] == f'{cur_year}-10-02'
+    assert len(london['days']) == 4
+
+    assert edinburgh['city'] == '爱丁堡'
+    assert edinburgh['country'] == '英国'
+    assert edinburgh['start_date'] == f'{cur_year}-10-03'
+    assert edinburgh['end_date'] == f'{cur_year}-10-07'
+    assert len(edinburgh['days']) == 5
+
+    # 完整性审计：所有日子加起来应等于 9 天，覆盖 09.29 到 10.07
+    total_days = sum(len(leg['days']) for leg in legs)
+    assert total_days == 9, f'expected 9 days total, got {total_days}'
+
+
+def test_day1_activities_and_accommodation_leaf_values():
+    """Leaf-level assertions on day 1's content (assert to the leaf, not just shape)."""
+    result = parse_planner_text(UK_9DAY_OCR)
+    day1 = result['legs'][0]['days'][0]
+
+    assert day1['day_number'] == 1
+    assert day1['date'] == f'{datetime.now().year}-09-29'
+    assert day1['accommodation'] == '伦敦摄政公园万豪酒店'
+    # 关键景点必须出现在 activities 中（无论顺序）
+    assert '大英博物馆' in day1['activities']
+    assert '伦敦帕丁顿车站' in day1['activities']
+    assert '摄政公园' in day1['activities']
+    assert day1['transport'] == []
+
+
+def test_transition_day_picks_destination_city():
+    """Day 10.03 crosses 伦敦 → 爱丁堡. City must resolve to 爱丁堡 (destination),
+    not 伦敦 (origin). This is the discriminating case for the "last-mentioned
+    DEST_CITY wins" heuristic."""
+    result = parse_planner_text(UK_9DAY_OCR)
+    edinburgh_days = result['legs'][1]['days']
+    transition = edinburgh_days[0]
+    assert transition['date'] == f'{datetime.now().year}-10-03'
+    assert transition['accommodation'] == '万豪爱丁堡官邸酒店'
+    assert '爱丁堡城堡' in transition['activities']
+    # 原有活动不能被吞（跨层验证）
+    assert any('斯坦斯特德机场' in a for a in transition['activities'])
+
+
+def test_day_with_no_dest_city_inherits_previous():
+    """Day 10.05 contains 波特里 / 内斯湖 / Old Man of Storr — none are in
+    DEST_CITIES. The day must inherit 爱丁堡 from the previous day, not fall
+    back to '[待确认]'. (Tiered-fallback rule: every tier must return a valid leg.)"""
+    result = parse_planner_text(UK_9DAY_OCR)
+    # Day 10.05 is day_number 7 in the 爱丁堡 leg (index 2)
+    day_oct5 = [d for leg in result['legs'] for d in leg['days'] if d['date'].endswith('-10-05')][0]
+    # 它应该被归到爱丁堡 leg 里
+    edinburgh = [leg for leg in result['legs'] if leg['city'] == '爱丁堡'][0]
+    assert day_oct5 in edinburgh['days']
+
+
+# ---------------------------------------------------------------------------
+# Day-header variant coverage (extractor emits multiple forms per document)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize('header', [
+    '09.29/周日',   # canonical full weekday
+    '09.30/周-',    # OCR weakness: 一 misread as '-'
+    '10.01/周二',   # canonical
+    '10.04/月五',   # OCR weakness: 周 misread as 月
+    '10.07/-',      # OCR dropped '周' and weekday entirely
+    '09.29/日',     # short form (single-char weekday)
+    '09.29',        # weekday omitted completely
+])
+def test_day_header_variants_all_parse(header):
+    """All six observed + one minimal header variant must split to a day."""
+    text = f"""测试9日游
+{header}
+某景点
+10.10/周三
+下一天景点
+"""
+    result = parse_planner_text(text)
+    assert len(result['legs']) >= 1
+    total_days = sum(len(leg['days']) for leg in result['legs'])
+    assert total_days == 2, f'header {header!r} must produce exactly 2 days, got {total_days}'
+
+
+# ---------------------------------------------------------------------------
+# Year-boundary edge case
+# ---------------------------------------------------------------------------
+
+
+def test_year_rollover_when_end_month_less_than_start_month():
+    """12.28 -> 01.03 should span the new year; end_date year must be start+1."""
+    text = """跨年3日游
+By me, from 12.28 至 01.03
+12.28/周六
+跨年夜景点
+12.31/周二
+元旦景点
+01.03/周五
+回家
+"""
+    result = parse_planner_text(text)
+    cur = datetime.now().year
+    assert result['trip']['start_date'] == f'{cur}-12-28'
+    assert result['trip']['end_date'] == f'{cur + 1}-01-03'
+
+
+# ---------------------------------------------------------------------------
+# context_year: caller-provided year wins over datetime.now()
+# ---------------------------------------------------------------------------
+
+
+def test_context_year_overrides_current_year():
+    """When caller passes context_year (e.g. from an already-parsed PDF on the
+    same edit page), planner must use THAT year, not datetime.now().year. This
+    is the "PDF 先传、JPG 后覆盖" workflow's natural year-carry."""
+    result = parse_planner_text(UK_9DAY_OCR, context_year=2024)
+    assert result['trip']['start_date'] == '2024-09-29'
+    assert result['trip']['end_date'] == '2024-10-07'
+    # Per-leg dates must inherit the same year
+    assert result['legs'][0]['start_date'] == '2024-09-29'
+    assert result['legs'][1]['end_date'] == '2024-10-07'
+    # Per-day dates must inherit the same year (assert to leaf)
+    all_days = [d for leg in result['legs'] for d in leg['days']]
+    for day in all_days:
+        assert day['date'].startswith('2024-'), f'day {day["date"]} should be in 2024'
+
+
+def test_context_year_absent_falls_back_to_current_year():
+    """No context_year passed → use datetime.now().year (existing behavior)."""
+    result = parse_planner_text(UK_9DAY_OCR)  # no context_year kwarg
+    cur = datetime.now().year
+    assert result['trip']['start_date'] == f'{cur}-09-29'
+    assert result['trip']['end_date'] == f'{cur}-10-07'
+
+
+def test_context_year_none_falls_back_to_current_year():
+    """Explicit context_year=None is treated identically to omitted arg."""
+    result = parse_planner_text(UK_9DAY_OCR, context_year=None)
+    cur = datetime.now().year
+    assert result['trip']['start_date'] == f'{cur}-09-29'
+
+
+def test_context_year_with_cross_year_rollover():
+    """context_year applies to START; end still rolls to start+1 when month decreases."""
+    text = """跨年3日游
+12.28/周六
+跨年夜景点
+12.31/周二
+元旦景点
+01.03/周五
+回家
+"""
+    result = parse_planner_text(text, context_year=2024)
+    assert result['trip']['start_date'] == '2024-12-28'
+    assert result['trip']['end_date'] == '2025-01-03'
+
+
+# ---------------------------------------------------------------------------
+# Empty / malformed inputs
+# ---------------------------------------------------------------------------
+
+
+def test_empty_text_raises():
+    with pytest.raises(ValueError):
+        parse_planner_text('')
+
+
+def test_no_day_headers_raises():
+    with pytest.raises(ValueError):
+        parse_planner_text('这是一段没有日期头的文字\n仅有几行文本')
+
+
+# ---------------------------------------------------------------------------
+# Shape compliance: every day dict must have every expected key (assert-to-leaf)
+# ---------------------------------------------------------------------------
+
+
+def test_day_dict_shape_matches_parse_text():
+    """Every day entry must carry the exact keys parse_text() emits — the
+    frontend TripForm / TripEditor.applyAction depend on this shape. A missing
+    key silently breaks rendering with no exception."""
+    result = parse_planner_text(UK_9DAY_OCR)
+    expected_keys = {
+        'day_number', 'date', 'description', 'highlights',
+        'activities', 'transport', 'accommodation',
+    }
+    for leg in result['legs']:
+        for day in leg['days']:
+            assert set(day.keys()) == expected_keys, \
+                f'day {day.get("day_number")} keys {set(day.keys())} != {expected_keys}'
+
+    for leg in result['legs']:
+        assert set(leg.keys()) >= {
+            'order_index', 'city', 'country', 'start_date', 'end_date', 'days',
+        }
+
+    assert set(result['trip'].keys()) >= {
+        'title', 'start_date', 'end_date', 'traveler_count', 'description', 'status',
+    }

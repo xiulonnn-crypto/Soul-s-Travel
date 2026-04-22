@@ -270,6 +270,19 @@ pdfminer 对穷游概览表每天的日期-星期单元格会输出两种形态�
 
 **同一份 PDF 可能混用两种形态**（2024-05 韩国行程即是如此：day 01/03/04 为 A 形，day 02/05 为 B 形）。因此 `_split_by_day` 使用 `\n(\d{2})\s+星期[一二三四五六日天]`（`\s+` 同时吞换行与空格），不能退化为 `\n(\d{2})\n\s*星期`。同样的正则也用于 `parse_text` 里把概览表航班出发时段映射回当天。
 
+**穷游 PDF 详情页景点名行的多形态**（`_build_activity_category_map` 必须同时兼容）：
+
+`_normalize` 的 CJK 去重只处理相邻同字 CJK，对拉丁字母不去重。不同 PDF 模板里，详情页景点名行的形态差异很大：
+
+| 形态 | 示例（normalize 后） | 特点 |
+|---|---|---|
+| 纯 CJK 短名 | `牛家` / `郑王庙` | 长度 ≤ 10，可以作为 name 候选行 |
+| CJK + 双写英文 | `曼谷国家博物馆,,BBaannggkkookk NNaattiioonnaall MMuusseeuumm` | 长度 ~30–60，超出任何合理的 name 行上限 |
+| 英文前缀 + CJK 后缀 | `KKeerr--CChhoorr大象生态公园` | CJK 不在行首 |
+| 双语跨两行 | name 行 + 英文续行 + 类型标签 | 类型标签不再紧邻 name |
+
+**因此 `_build_activity_category_map` 以类型标签行（短、well-formed，如 `博物馆`/`动物园`/`国家公园`/`街区`）为锚点**，向上反向扫描最多 4 行非空内容，取最近一行的首个 CJK 子串作为景点名，不做长度硬过滤。`_TYPE_RULES` 的 `门票` 分支需覆盖旅行景点常见标签：博物馆/主题公园/游乐/缆车/观景/遗址/神社/寺庙/城堡/宫殿/动物园/公园/自然风光/地标/建筑/街区/集市/夜市/活动。
+
 **关键常量**（三表必须同步，见 CLAUDE.md 禁止事项）：
 - `DEST_CITIES`：已知目的地城市集合
 - `COUNTRY_MAP`：城市 → 国家映射
@@ -302,21 +315,203 @@ pdfminer 对穷游概览表每天的日期-星期单元格会输出两种形态�
 }
 ```
 
-### 行程评价系统
+### 行程评价计算模型
 
-纯本地规则，无 LLM 调用。
+纯本地规则，无 LLM 调用。实现文件 `backend/services/evaluator.py`，入口 `generate_evaluation(trip_dict, profile)`。
 
-**评分维度**：花费合理性 / 行程节奏 / 住宿质量 / 交通效率 / 景点覆盖，各维度 0–100 分，加权合成总分。
+#### 1. 总体结构
 
-**个性化调整**：
-1. 读取 `UserProfile.annual_travel_budget` → 确定消费层级（经济 / 舒适 / 豪华）
-2. 读取 `city_benchmarks.json` 对应城市基准价格
-3. 按季节（月份）调整基准（旺季上调）
-4. 实际日均花费 vs 调整后基准 → 花费评分
+```
+generate_evaluation
+    ├─ 0. 消费层级 & 季节基准调整    _compute_tier_multiplier / _build_adjusted_benchmarks
+    ├─ 1. 花费性价比                   _compute_cost_metrics
+    ├─ 2. 行程节奏                     _compute_pace_metrics
+    ├─ 3. 住宿品质                     _compute_accommodation_metrics
+    ├─ 4. 交通规划                     _compute_transport_metrics
+    ├─ 5. 景点覆盖                     _compute_attractions_metrics
+    ├─ 6. 城市维度评价                 _evaluate_city（每个 leg 单独评）
+    ├─ 7. 总评文案                     _generate_summary
+    └─ 8. 后续建议                     _generate_suggestions
+```
 
-**口径一致性**：`avg_daily_cost_cny` 代表城市内日均消费（住宿 + 餐饮 + 本地交通 + 景点），不含国际/城际大交通。因此花费评分计算时，用户花费侧也剔除大交通（`_is_flight_expense`）。大交通检测采用分层策略：关键词匹配（机票/高铁等）→ 路线模式匹配（"A到B"格式）→ 本地交通排除（打车/Grab/机场到酒店等）。
+**五维加权合成总分**：
 
-**缓存**：评价结果存 `TripEvaluation` 表，`GET` 先查缓存；`POST` 强制重新生成。
+| 维度 | 权重 | 主要信号 |
+|---|---:|---|
+| 花费性价比 cost | 0.20 | 人均日消费 vs 调整后市场基准（剔除大交通） |
+| 行程节奏 pace | 0.20 | 按难度加权的日活动量 vs 理想区间，方差惩罚 |
+| 住宿品质 accommodation | 0.15 | 住宿记录覆盖率 + 平均夜价 vs 基准 |
+| 交通规划 transport | 0.15 | 交通记录覆盖率 + 回头路检测 |
+| 景点覆盖 attractions | 0.30 | 必去清单覆盖率（按停留人日调整） |
+
+总分 = Σ 维度分 × 权重，`_clamp` 至 [0, 100]。
+
+#### 2. 基准数据
+
+`backend/data/city_benchmarks.json`：城市 → 基准价格/必去景点/典型停留/季节系数映射，含 144 个城市 + `_country_defaults` 国家回退表。单条 schema：
+
+```json
+"曼谷": {
+  "country": "泰国",
+  "avg_daily_cost_cny": 800,       // 城市日均消费（住宿+餐饮+本地交通+景点，不含大交通）
+  "avg_hotel_price_cny": 350,
+  "must_see": ["大皇宫", "卧佛寺", ...],
+  "typical_stay_days": 3,
+  "seasons": {
+    "peak":     {"months": [11,12,1,2], "multiplier": 1.25},
+    "off_peak": {"months": [5,6,7,8,9], "multiplier": 0.80}
+  }
+}
+```
+
+三级查找：城市基准 → 国家回退 `_country_defaults[country]` → None。
+
+#### 3. 消费层级与季节调整
+
+三段系数相乘产出当城当季的调整后基准（`_build_adjusted_benchmarks`）：
+
+```
+adjusted_daily = raw_daily × tier_mult × season_mult × dest_coeff
+adjusted_hotel = raw_hotel × tier_mult × season_mult × dest_coeff
+```
+
+| 系数 | 计算 | 取值范围 |
+|---|---|---|
+| `tier_mult` | `(人均年预算 / 35,000) ** 0.55` | [0.5, 2.5] |
+| `season_mult` | 行程月份的 peak/off_peak/shoulder 加权 | 约 [0.80, 1.25] |
+| `dest_coeff` | 穷国富游系数，低成本目的地上调更多 | [0.85, 1.5] |
+
+`tier_mult` 同时产出消费层级标签（`_tier_label`）：经济 / 实惠 / 舒适 / 品质 / 高端 / 奢华。
+
+#### 4. 花费性价比
+
+剔除大交通后算人均日消费，与加权市场均值比值映射成得分：
+
+```
+ground_expense = Σ expenses − Σ _is_flight_expense(e).amount
+per_person_per_day = ground_expense / traveler_count / total_days
+market_avg = Σ 各 leg 城市 adjusted_daily / city_count
+ratio = per_person_per_day / market_avg
+```
+
+| ratio | 分数 |
+|---|---|
+| ≤ 0.7 | 100 |
+| 0.7–1.0 | 100 → 80 线性 |
+| 1.0–1.5 | 80 → 50 线性 |
+| > 1.5 | max(30, 50 − (ratio−1.5)×20) |
+
+**口径一致性**：`avg_daily_cost_cny` 只覆盖城市内日常开销，所以用户花费侧必须剔除大交通。`_is_flight_expense` 三层判定：①关键词匹配（`机票/航班/flight/高铁/动车/火车票/长途`）→ ②城际路线模式 `[CJK|En]+[到至→][CJK|En]+`，→ ③本地交通排除（`打车/滴滴/Grab/机场到酒店` 等前缀或 `机场/酒店/车站/码头/景区` 等本地地点命中即否决）。
+
+#### 5. 行程节奏（按难度加权）
+
+**模型**：逐日打分，跨城日与游览日用不同理想区间。
+
+```
+for each day:
+  load        = Σ _activity_load_weight(a)            # 按难度加权的活动量
+  is_transit  = _is_transit_day(day)
+  (lo, hi)    = _ideal_activity_range_for_day(is_transit, must_see, typical_stay)
+  day_score   = _pace_day_score(load, lo, hi)         # [lo, hi] 内 95 分，越偏越扣
+
+base_score = mean(day_score for all days)
+if len(非交通日 loads) > 1:
+    base_score -= min(10, var(非交通日 loads) × 2)    # 方差惩罚只计非交通日
+```
+
+**活动难度权重** `_activity_load_weight(name)`：
+
+| 级别 | 权重 | 关键词（部分） |
+|---|---:|---|
+| 高强度 | 1.5 | 博物馆/美术馆/皇宫/城堡/古城/古镇/保护区/国家公园/自然公园/动物园/水族馆/主题公园/迪士尼/环球影城/潜水/浮潜/滑雪/徒步/登山/攀登/`…山$`/`…岳$`/`…峰$` |
+| 低强度 | 0.5 | 餐厅/餐室/饭店/夜市/集市/市场/商场/购物中心/广场/摩天轮/游轮/码头/咖啡馆/酒吧/mall/market/cafe/bar |
+| 标准 | 1.0 | 其余（寺/庙/神祠/园/门/桥 等普通景点） |
+
+**理想区间 `_ideal_activity_range_for_day`**：
+
+- 交通日：`(1.0, 3.0)`
+- 非交通日：`ideal_center = clip(len(must_see)/typical_stay + 0.5, [2.0, 4.5])`，区间 `(center−1.0, center+1.5)`——景点密度高的城市允许每天多塞
+
+**交通日判定 `_is_transit_day`**：当天 `transport` 含 `_MAJOR_TRANSPORT_KW`（机票/航班/flight/高铁/动车 等）或城际路线模式即为交通日。
+
+**暴露字段**：`avg_activities`（原始平均条数）、`avg_load`（加权平均）、`busiest_day`（按 load 选）、`busiest_count`（原始条数）、`busiest_load`（加权）、`transit_day_count`。文案同时展示原始条数与加权活动量。
+
+**阈值**：
+
+| 条件 | 行为 |
+|---|---|
+| `2.0 ≤ avg_load ≤ 3.5` | 标签"节奏适中" |
+| `avg_load > 4.0` | 标签"部分天数偏紧" |
+| `avg_load < 1.5` | 文案"行程较为宽松" |
+| `busiest_load > 5.0` | 标签 "DayN 偏满" + 文案 "略显密集" |
+
+#### 6. 住宿品质
+
+```
+coverage = 有住宿记录天数 / 需住宿天数        # 分母由 _day_requires_accommodation 决定
+avg_nightly = Σ 住宿类 expense / max(记录天数, 1)
+score = coverage_score × 0.6 + price_score × 0.4
+```
+
+**需住宿天数**（`_day_requires_accommodation`）：有住宿字段 → 计入；无住宿但是交通日 → 不计入（合理在途过夜：返程/通宵航班）；其他情况计入。
+
+**price_score**：`avg_nightly / adjusted_hotel` 比值：
+
+| 比值 | 分数 |
+|---|---|
+| 0.6–1.2 | 90（性价比正常） |
+| < 0.6 | 75（太便宜，品质堪忧） |
+| > 1.2 | max(50, 90 − (ratio−1.2)×30) |
+
+#### 7. 交通规划
+
+```
+coverage = 有 transport 字段的天数 / 总天数
+base_score = 70 + coverage × 25
+if 回头路:
+    base_score -= 15
+```
+
+回头路检测：遍历 `cities_in_order`，若 `cities[i] == cities[i-2]` 则判定存在回头路（A → B → A 模式）。
+
+#### 8. 景点覆盖
+
+按停留人日调整期望覆盖率，城市间按有效天加权合成：
+
+```
+for each leg:
+  effective_days = max(0.1, num_days − transit_days × 0.5)    # 跨城日折半
+  stay_ratio     = clip(effective_days / typical_stay, [0.1, 1.0])
+  visited        = 当城所有 day.activities 的去重集合
+  covered        = [spot for spot in must_see if any(spot in v or v in visited for v in visited)]
+  raw_ratio      = len(covered) / len(must_see)
+  adjusted_ratio = min(1.0, raw_ratio / stay_ratio)           # 停留短于典型时上调期望
+  weight         = effective_days
+
+overall_coverage = Σ adjusted_ratio × weight / Σ weight
+score = min(100, overall_coverage × 90 + 10)
+```
+
+输出同时保留 `raw_coverage_pct`（未调整）与 `coverage_pct`（调整后），便于文案区分"必去清单全覆盖"与"因停留短而按比例放宽"两种情况。
+
+#### 9. 城市维度评价
+
+`_evaluate_city` 对每个 leg 独立打分，四个子分加权合成城市综合分：
+
+```
+city_score = cost_sub × 0.25 + spot_sub × 0.30 + pace_sub × 0.25 + stay_sub × 0.20
+```
+
+其中 `pace_sub` 复用整体维度的按难度加权模型；`stay_sub` 根据 `num_days` 与 `typical_stay_days` 的差距分档（达标/少一天/更短）。
+
+#### 10. 缓存与再生成
+
+结果持久化到 `trip_evaluations`（`overall_score` + `evaluation_data` JSON）：
+
+- `GET /api/trips/:id/evaluation`：有缓存直接返回；无则计算并写入，返回 201
+- `POST /api/trips/:id/evaluation`：强制重新生成并覆盖缓存
+
+**注意**：修改评价公式/权重/基准数据后，所有历史缓存都是按旧模型算出的陈旧值。要让用户看到新结果，必须 POST 触发再生成（或手动清理 `trip_evaluations`）。
 
 ---
 

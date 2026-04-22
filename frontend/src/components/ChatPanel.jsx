@@ -4,7 +4,7 @@ import { PaperClipOutlined, SendOutlined } from '@ant-design/icons'
 import { parseApi } from '../services/api'
 import './ChatPanel.css'
 
-export default function ChatPanel({ onParsed }) {
+export default function ChatPanel({ onParsed, getContextYear }) {
   const [messages, setMessages] = useState([
     { role: 'ai', text: '你好！我可以帮你快速创建行程 ✨\n\n📄 上传行程 PDF\n🖼️ 上传行程表图片\n📝 粘贴文字描述\n🔗 粘贴穷游行程助手链接\n💬 直接告诉我去了哪里' }
   ])
@@ -78,7 +78,8 @@ export default function ChatPanel({ onParsed }) {
       addMsg('ai', '正在识别图片中的行程信息，请稍候...')
     }
     try {
-      const result = await parseApi.file(file)
+      const contextYear = typeof getContextYear === 'function' ? getContextYear() : null
+      const result = await parseApi.file(file, contextYear ? { contextYear } : {})
       if (result.type === 'compound') {
         const count = result.actions?.length || 0
         addMsg('ai', `已处理 ${count} 条指令，已更新到行程中。`)

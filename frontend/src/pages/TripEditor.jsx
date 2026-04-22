@@ -4,6 +4,7 @@ import { message } from 'antd'
 import ChatPanel from '../components/ChatPanel'
 import TripForm from '../components/TripForm'
 import { tripApi } from '../services/api'
+import { applyAction } from '../utils/applyAction'
 import './TripEditor.css'
 
 const PARSE_STORAGE_PREFIX = 'parse_ref_'
@@ -47,78 +48,13 @@ export default function TripEditor() {
     setSearchParams({ ref: refKey }, { replace: true })
   }
 
-  const applyAction = (result) => {
-    const base = tripDataRef.current
-    if (result.type === 'expense' && base) {
-      return {
-        ...base,
-        expenses: [...(base.expenses || []), ...(result.expenses || [])],
-      }
-    }
-    if (result.type === 'change_category' && base) {
-      const name = result.item_name || ''
-      const target = result.target_category || '住宿'
-      return {
-        ...base,
-        expenses: (base.expenses || []).map(exp => {
-          const desc = exp.description || ''
-          if (name && desc.includes(name)) {
-            return { ...exp, category: target }
-          }
-          return exp
-        }),
-      }
-    }
-    if (result.type === 'accommodation' && base) {
-      const name = result.accommodation || ''
-      const target = result.target_category || '住宿'
-      return {
-        ...base,
-        expenses: (base.expenses || []).map(exp => {
-          const desc = exp.description || ''
-          if (name && desc.includes(name)) {
-            return { ...exp, category: target }
-          }
-          return exp
-        }),
-      }
-    }
-    if (result.type === 'remove_expense' && base) {
-      const desc = result.description || ''
-      return {
-        ...base,
-        expenses: (base.expenses || []).filter(exp =>
-          !desc || !(exp.description || '').includes(desc)
-        ),
-      }
-    }
-    if (result.type === 'rename' && base) {
-      const { old_name, new_name } = result
-      return {
-        ...base,
-        legs: (base.legs || []).map(leg => ({
-          ...leg,
-          days: (leg.days || []).map(day => ({
-            ...day,
-            activities: (day.activities || []).map(a => a === old_name ? new_name : a),
-            accommodation: day.accommodation === old_name ? new_name : day.accommodation,
-          })),
-        })),
-      }
-    }
-    if (result.trip || (result.legs && result.legs.length > 0)) {
-      return result
-    }
-    return base || result
-  }
-
   const handleParsed = (result) => {
     if (result.type === 'compound' && result.actions) {
       for (const action of result.actions) {
-        tripDataRef.current = applyAction(action)
+        tripDataRef.current = applyAction(tripDataRef.current, action)
       }
     } else {
-      tripDataRef.current = applyAction(result)
+      tripDataRef.current = applyAction(tripDataRef.current, result)
     }
     setParsedData({ ...tripDataRef.current })
     if (!isEdit) saveParsedToUrl(tripDataRef.current)
@@ -140,10 +76,18 @@ export default function TripEditor() {
     }
   }
 
+  const getContextYear = () => {
+    const base = tripDataRef.current
+    const startDate = base?.trip?.start_date
+    if (!startDate) return null
+    const year = parseInt(startDate.slice(0, 4), 10)
+    return Number.isFinite(year) ? year : null
+  }
+
   return (
     <div className="editor-layout">
       <div className="editor-chat">
-        <ChatPanel onParsed={handleParsed} />
+        <ChatPanel onParsed={handleParsed} getContextYear={getContextYear} />
       </div>
       <div className="editor-form">
         <TripForm data={parsedData} onSave={handleSave} />

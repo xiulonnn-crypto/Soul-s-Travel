@@ -26,17 +26,40 @@ def parse_trip():
         fname = file.filename or ''
 
         if _is_image(fname):
-            from services.image_parser import parse_image
             img_bytes = file.read()
             ext = '.' + fname.rsplit('.', 1)[-1].lower()
             mime = _MIME_MAP.get(ext, 'image/jpeg')
+
+            # 默认走本地 OCR + PiTravel 解析器（无云端密钥依赖）。
+            # 仅当用户显式配置了 AI_API_KEY 时才走 Vision API 路径作为备选。
+            if os.environ.get('AI_API_KEY'):
+                from services.image_parser import parse_image
+                try:
+                    return jsonify(parse_image(img_bytes, mime))
+                except RuntimeError as e:
+                    return jsonify({"error": str(e)}), 400
+                except Exception as e:
+                    return jsonify({"error": f"图片识别失败: {e}"}), 500
+
+            from services.image_extractor import extract_text_from_image
+            from services.planner_parser import parse_planner_text
+            # 可选的年份上下文：前端在"已经存在行程数据"时（如 PDF 已解析完再传 JPG）
+            # 会把当前行程的年份带上来，避免 PiTravel 海报缺年份时默认推成当前年。
+            ctx_year_raw = request.form.get('context_year', '').strip()
+            ctx_year = None
+            if ctx_year_raw.isdigit():
+                y = int(ctx_year_raw)
+                if 1900 <= y <= 2100:
+                    ctx_year = y
             try:
-                result = parse_image(img_bytes, mime)
-                return jsonify(result)
+                ocr_text = extract_text_from_image(img_bytes)
+                return jsonify(parse_planner_text(ocr_text, context_year=ctx_year))
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
             except RuntimeError as e:
                 return jsonify({"error": str(e)}), 400
             except Exception as e:
-                return jsonify({"error": f"图片识别失败: {e}"}), 500
+                return jsonify({"error": f"本地图片识别失败: {e}"}), 500
 
         ext = os.path.splitext(fname)[1].lower()
         if ext in SUPPORTED_DOC_EXTS:
