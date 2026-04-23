@@ -68,7 +68,9 @@ npm run dev &
 FRONTEND_PID=$!
 
 # 等待任意服务退出，然后清理
-trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
+# SIGHUP: Terminal 被直接关闭时 bash 收到的信号（Cmd+Q / 关窗口）
+# EXIT:   脚本正常退出或异常退出的最后兜底，确保 backend 不会被孤立
+trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM SIGHUP EXIT
 
 wait $FRONTEND_PID
 kill $BACKEND_PID 2>/dev/null

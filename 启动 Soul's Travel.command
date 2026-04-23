@@ -74,7 +74,9 @@ echo -e "${YELLOW}按 Ctrl+C 停止后端${NC}"
 echo "────────────────────────────────────"
 
 # Ctrl+C 清理后端
-trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM
+# SIGHUP: Terminal 直接关闭时 bash 收到的信号（Cmd+Q / 关窗口）
+# EXIT:   脚本任何原因退出的最后兜底，避免 backend 被孤立占用 5002 端口
+trap "echo ''; echo '正在停止服务...'; kill $BACKEND_PID 2>/dev/null; exit 0" SIGINT SIGTERM SIGHUP EXIT
 
 if [ "$FRONTEND_ALREADY_RUNNING" = true ]; then
   # 前端已在运行，直接打开浏览器并挂起等待 Ctrl+C

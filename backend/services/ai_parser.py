@@ -267,8 +267,11 @@ def _normalize(text):
     """Normalize CJK radicals + null-byte arrows + NFKC + de-duplicate adjacent identical CJK chars."""
     # Replace null bytes used as arrow separators in PDF (e.g. 广州\x00曼谷)
     text = text.replace('\x00', '→')
-    # PUA arrow chars used by some PDF fonts (穷游 Korea PDF uses \ue6ae)
-    text = text.replace('\ue6ae', '→')
+    # PUA arrow chars used by some PDF fonts. 穷游 PDF 在同一份文件里可能
+    # 混用多个 PUA 码点（2025 日本 PDF 同时出现 \ue6ae / \ue6af / \ue6ab，
+    # 具体字形由字体 cmap 决定）。按已知枚举并列替换，遇到新 PDF 增加一行即可。
+    for pua in ('\ue6ae', '\ue6af', '\ue6ab'):
+        text = text.replace(pua, '→')
     chars = [_RADICAL_MAP.get(ch, ch) for ch in text]
     text = unicodedata.normalize('NFKC', ''.join(chars))
     # Handle CJK Radical Supplements (U+2E80–U+2EFF) not normalized by NFKC.
@@ -500,14 +503,26 @@ def _extract_activities(chunk):
 
     Supports CJK, hiragana/katakana, and English-prefixed names (e.g. 'Hep Five摩天轮',
     '圣淘沙4D探险乐园'). 景点名内部允许数字/英文字母，以覆盖「4D」「3.0」这类混合名。
+    同时支持纯 Latin 景点名（如 'MO-MO-PARADISE Kabukicho'）——这种在日文/韩文
+    行程里是店铺招牌保留原文的常见情形。
     """
     _CJK_KANA = r'\u4e00-\u9fff\u3040-\u30ff'
+    # 主规则：含 CJK/假名 的景点名
+    primary_re = re.compile(
+        r'\d+\.\s+([A-Za-z ]*['
+        + _CJK_KANA + r']['
+        + _CJK_KANA + r'·\-A-Za-z0-9]*(?:\([^)]+\))?)',
+    )
+    # 兜底：纯英文景点名；要求起始 ASCII 字母 + 内部 ≥3 字符 + 结尾为字母/数字，
+    # 并以行尾或两个以上空白为边界（避免吞到后续列）。下限 5 字符防止把 '1. Tips'
+    # 这类详情页遗漏的噪声当成景点。
+    latin_re = re.compile(
+        r"\d+\.\s+([A-Za-z][A-Za-z0-9\-' ]{3,40}[A-Za-z0-9])(?=\s{2,}|\s*$)"
+    )
     activities = []
     for line in chunk.split('\n'):
-        for m in re.finditer(
-            r'\d+\.\s+([A-Za-z ]*[' + _CJK_KANA + r'][' + _CJK_KANA + r'·\-A-Za-z0-9]*(?:\([^)]+\))?)',
-            line,
-        ):
+        taken_spans = []
+        for m in primary_re.finditer(line):
             name = m.group(1).strip().rstrip('，,、 ')
             if len(name) < 2 or name in activities:
                 continue
@@ -522,6 +537,19 @@ def _extract_activities(chunk):
                     continue
             if name in DEST_CITIES:
                 continue
+            activities.append(name)
+            taken_spans.append((m.start(), m.end()))
+        # 二次过：纯 Latin 兜底，跳过已被主规则覆盖的 span
+        for m in latin_re.finditer(line):
+            if any(s <= m.start() < e for s, e in taken_spans):
+                continue
+            name = m.group(1).strip()
+            if len(name) < 4 or name in activities:
+                continue
+            if _HOTEL_RE.search(name):
+                pre_text = line[:m.start()]
+                if re.search(r'(?:\d+\.\s+)+$', pre_text):
+                    continue
             activities.append(name)
     return activities[:15]
 
@@ -581,8 +609,11 @@ def _extract_transport(chunk):
 
     _en_city_set = {v.lower() for v in _EN_TO_ZH_CITY.keys()}
     routes = []
+    # CJK 城市名上限 {1,8}：覆盖「富士河口湖」(5)、「富士吉田市」(5)、
+    # 「阿姆斯特丹」(5)、「马尔代夫」(4) 等多字城市；原 {1,4} 会把 5 字城市
+    # 截成后 3 字（富士河口湖 → 河口湖）。
     for m in re.finditer(
-        r'([\u4e00-\u9fff]{1,4}|[A-Za-z]{2,10})\s*→\s*([\u4e00-\u9fff]{1,4}|[A-Za-z]{2,10})',
+        r'([\u4e00-\u9fff]{1,8}|[A-Za-z]{2,10})\s*→\s*([\u4e00-\u9fff]{1,8}|[A-Za-z]{2,10})',
         chunk,
     ):
         src, dst = m.group(1).strip(), m.group(2).strip()
@@ -606,9 +637,10 @@ def _extract_transport(chunk):
 
 def _extract_accommodation(chunk):
     """Extract first clean hotel name from chunk, preferring Chinese names."""
-    # Prefer Chinese hotel names
+    # Prefer Chinese hotel names — 「旅店」与「旅馆」同义，日本/港台
+    # 穷游 PDF 两种写法都出现。
     for m in re.finditer(
-        r'([\u4e00-\u9fff]{2,12}(?:酒店|宾馆|度假村|客栈|旅馆|民宿))',
+        r'([\u4e00-\u9fff]{2,12}(?:酒店|宾馆|度假村|客栈|旅馆|旅店|民宿))',
         chunk,
     ):
         name = m.group(1).strip()
@@ -639,12 +671,26 @@ def _build_activity_category_map(text):
     name lines whose length exceeds 20 chars due to doubled English letters
     that CJK-only dedup in `_normalize` does not collapse.
     """
+    # 规则顺序：住宿/交通先于门票/餐饮，因为「住宿」「电车」类型标签属于更
+    # 明确的专属信号，而门票的「建筑/活动」等关键字范围宽、容易误收。
     _TYPE_RULES = [
+        (r'^住宿$|^酒店$|^宾馆$|^民宿$|^旅馆$|^旅店$|^客栈$|^度假村$', '住宿'),
+        (r'电车|電車|铁路交通|地铁|公交|新干线|新幹線', '交通'),
         (r'美食|料理|小吃|餐厅|咖啡|拉面|寿司|烧肉|火锅', '餐饮'),
         (r'博物馆|主题公园|游乐|缆车|观景|遗址|神社|寺庙|城堡|宫殿|'
-         r'动物园|公园|自然风光|地标|建筑|街区|集市|夜市|活动', '门票'),
-        (r'购物|免税|百货|商圈|化妆|时尚', '购物'),
+         r'动物园|公园|自然风光|地标|建筑|街区|集市|夜市|活动|景点', '门票'),
+        (r'购物|免税|百货|商圈|化妆|时尚|礼品店|购物街|手工艺品', '购物'),
     ]
+    # 住宿标签的反向扫描必须落到真正的酒店行，否则会把「东京」（城市名尾行）
+    # 或距离数字行当做酒店名。
+    # 注意：穷游 PDF 提取出来的英文字母常常是双写形态（"PPllaaccee"、
+    # "HHootteell"），在匹配前先把连续重复的字母折叠一次。
+    _HOTEL_KW_RE = re.compile(
+        r'酒店|宾馆|民宿|旅馆|旅店|客栈|度假村|Hotel|Inn|Lodge|Resort|hostel|Place',
+        re.IGNORECASE,
+    )
+    _DEDUP_LETTERS_RE = re.compile(r'([A-Za-z])\1+')
+    _DISTANCE_RE = re.compile(r'\d+\.?\d*\s*公里')
     _SKIP_PREFIX = re.compile(
         r'^(地址|时间|交通|票价|介绍|提示|Tips|P\d|\d|·| |\|)'
     )
@@ -665,12 +711,22 @@ def _build_activity_category_map(text):
         if cat is None:
             continue
         # Scan backward up to 4 non-empty lines for the nearest CJK name.
+        # 对「住宿」类型标签额外要求该行带酒店关键字（中英皆可），否则继续
+        # 往上找，避免把「Asakusa,东京」里的城市名「东京」当作酒店别名。
         for j in range(i - 1, max(-1, i - 5), -1):
             prev = lines[j]
             if not prev:
                 continue
             if _SKIP_PREFIX.match(prev):
                 break
+            # 跳过距离标记行，如「1.63公里」——它会让 activity_cat 出现
+            # 「公里 -> 餐饮」这种噪声映射。
+            if _DISTANCE_RE.search(prev):
+                continue
+            if cat == '住宿':
+                prev_deduped = _DEDUP_LETTERS_RE.sub(r'\1', prev)
+                if not _HOTEL_KW_RE.search(prev_deduped):
+                    continue
             name_m = _CJK_RUN.search(prev)
             if name_m:
                 # Don't overwrite: if the same name appeared for multiple
@@ -696,13 +752,17 @@ def _parse_expenses(text, start_date=None):
     # `活动` / `游艇` 等在中文语境下偶尔有歧义，但在行程费用表里几乎都指门票型消费，
     # 且交通/住宿/餐饮规则按顺序在前，真正属于那几类的条目不会误中门票。
     CATEGORY_RULES = [
+        # 日本常用 IC 卡 (SUICA/PASMO/ICOCA) 与铁路品牌 (JR/新干线/N'EX) 视为
+        # 交通；港澳「八达通」同理。`\bJR\b` 避免命中 "JR..." 之外的英文词。
         (r'交通|机票|航班|火车|高铁|大巴|船|包车|飞机|打车|出租车|的士|网约车|'
-         r'Grab|地铁|巴士|轮渡|渡轮', '交通'),
-        (r'酒店|宾馆|民宿|住宿|Hotel|hostel|客栈|旅馆|度假村|Resort|Inn|Lodge', '住宿'),
+         r'Grab|地铁|巴士|轮渡|渡轮|电车|電車|'
+         r'新干线|新幹線|\bJR\b|\bN[\'’]?EX\b|'
+         r'SUICA|ICOCA|PASMO|八达通|Octopus', '交通'),
+        (r'酒店|宾馆|民宿|住宿|Hotel|hostel|客栈|旅馆|旅店|度假村|Resort|Inn|Lodge', '住宿'),
         (r'午餐|晚餐|早餐|餐饮|餐厅|饭|美食|小吃|料理|咖啡|拉面|寿司|火锅|烧肉', '餐饮'),
         (r'门票|景点|入场|一日游|半日游|游览|活动|博物馆|美术馆|动物园|水族馆|'
          r'植物园|城堡|宫殿|宫|主题乐园|主题公园|游乐园|乐园|游乐|缆车|观景|'
-         r'遗址|神社|寺庙|瀑布|Go\s*City|GOCITY|Skyline|Luge|滑车|滑索|'
+         r'遗址|神社|寺庙|瀑布|瞭望|Go\s*City|GOCITY|Skyline|Luge|滑车|滑索|'
          r'蹦极|潜水|游艇', '门票'),
         (r'购物|纪念品|免税|百货|商圈', '购物'),
     ]
@@ -1259,14 +1319,35 @@ def parse_text(text: str) -> dict:
             clean = re.sub(r'\s*x\d+$', '', exp['description'])
             clean = _PRICE_SUFFIX_RE.sub('', clean)
             date_to_accom.setdefault(exp['date'], clean)
+    # 住宿反填：当某日没有原生「住宿」条目，但有「其他」条目时，选一条提升为住宿。
+    # 选取策略（防止把餐厅/活动误升为住宿）：
+    #   1. 优先选描述里含酒店/旅店/Hotel/Inn 等明确关键字的（规则表漏匹配的兜底）；
+    #   2. 否则只在「当日仅此一条其他」时升级（如 2019 日本 PDF 的「月沈原」——
+    #      无关键字但无歧义）；
+    #   3. 若一天有多条其他且都无酒店关键字，不做猜测，保留原分类。
+    _HOTEL_KW_RE = re.compile(
+        r'酒店|宾馆|民宿|旅馆|旅店|客栈|度假村|Hotel|Inn|Lodge|Resort|hostel',
+        re.IGNORECASE,
+    )
+    candidates_by_date: dict = {}
     for exp in expenses:
         if (exp['date'] and exp['category'] == '其他'
                 and exp['date'] not in date_to_accom
                 and not _ACTIVITY_DESC_RE.search(exp['description'])):
-            clean = re.sub(r'\s*x\d+$', '', exp['description'])
-            clean = _PRICE_SUFFIX_RE.sub('', clean)
-            date_to_accom.setdefault(exp['date'], clean)
-            exp['category'] = '住宿'
+            candidates_by_date.setdefault(exp['date'], []).append(exp)
+    for date, cands in candidates_by_date.items():
+        hotel_like = [c for c in cands if _HOTEL_KW_RE.search(c['description'] or '')]
+        chosen = None
+        if hotel_like:
+            chosen = hotel_like[0]
+        elif len(cands) == 1:
+            chosen = cands[0]
+        if chosen is None:
+            continue
+        clean = re.sub(r'\s*x\d+$', '', chosen['description'])
+        clean = _PRICE_SUFFIX_RE.sub('', clean)
+        date_to_accom.setdefault(date, clean)
+        chosen['category'] = '住宿'
     # chunk 抽到的中文酒店名（含「酒店/宾馆/度假村/客栈/旅馆/民宿」后缀且含汉字）
     # 视为高质量——例如概览表中的「竞技场海滩酒店」；不要被 expense 表里同一家酒店
     # 的简写名（如「马尔代夫竞技海滩酒店」）覆盖。仅当 chunk 抽取缺失或明显错误
