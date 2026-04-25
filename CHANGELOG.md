@@ -6,6 +6,8 @@ Soul's Travel 所有版本的变更记录，格式遵循 [Keep a Changelog](http
 
 ## [Unreleased]
 
+## [0.1.0-005] - 2026-04-26 - parser/evaluator updates, applyAction f…
+
 ### Fixed
 
 - **叠加导入时交通信息丢失**：先导入 PDF（含航班信息），再上传行程图片时，图片解析结果会把 PDF 中写入的每日交通记录全部覆盖为空；反之亦然。现在两份来源的数据会按日期对应合并——图片的活动和 PDF 的航班各自保留，互不覆盖。
