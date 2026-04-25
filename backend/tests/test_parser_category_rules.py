@@ -152,3 +152,109 @@ class TestStillOtherWhenUnknown:
         """`现金开销 / 信用卡开销`（泰国 PDF 真实条目）无具体分类信息，保持其他。"""
         exp = _parse_expenses(_make(["现金开销 CNY 2870 1 CNY 2870"]))
         assert _find(exp, "现金")["category"] == "其他"
+
+
+class TestSightseeingBoatKeywords:
+    """游船/游轮 是观光消费，不是运输，应归入门票。
+    普通渡船/乘船 仍归交通。"""
+
+    def test_youchuan_is_ticket(self):
+        """「游船」（越南湄公河游船体验）应为门票，而非交通。"""
+        exp = _parse_expenses(_make(["游船 CNY 150 1 CNY 150"]))
+        assert _find(exp, "游船")["category"] == "门票"
+
+    def test_youhulun_is_ticket(self):
+        """「游轮」（邮轮观光体验）应为门票。"""
+        exp = _parse_expenses(_make(["游轮 CNY 2000 1 CNY 2000"]))
+        assert _find(exp, "游轮")["category"] == "门票"
+
+    def test_halongbay_youchuan_is_ticket(self):
+        """「下龙湾游船」（真实行程描述）应为门票。"""
+        exp = _parse_expenses(_make(["下龙湾游船 CNY 680 1 CNY 680"]))
+        assert _find(exp, "游船")["category"] == "门票"
+
+    def test_duchuan_still_transport(self):
+        """「渡船」仍应为交通（轮渡通勤，非观光）。"""
+        exp = _parse_expenses(_make(["渡船 CNY 30 1 CNY 30"]))
+        assert _find(exp, "渡船")["category"] == "交通"
+
+    def test_chengchuan_still_transport(self):
+        """「乘船前往」仍应为交通。"""
+        exp = _parse_expenses(_make(["乘船前往富国岛 CNY 80 1 CNY 80"]))
+        assert _find(exp, "乘船")["category"] == "交通"
+
+
+class TestPerformanceKeywords:
+    """表演/展览 是付费文化体验，应归门票。"""
+
+    def test_biaoyan_is_ticket(self):
+        """「水上木偶表演」（越南 PDF 真实条目）应为门票。"""
+        exp = _parse_expenses(_make(["水上木偶表演 CNY 100 1 CNY 100"]))
+        assert _find(exp, "表演")["category"] == "门票"
+
+    def test_zaji_is_ticket(self):
+        """「杂技表演」应为门票。"""
+        exp = _parse_expenses(_make(["杂技表演 CNY 180 1 CNY 180"]))
+        assert _find(exp, "表演")["category"] == "门票"
+
+    def test_zhanlan_is_ticket(self):
+        """「展览」（博物馆临时展、美术展）应为门票。"""
+        exp = _parse_expenses(_make(["美术展览 CNY 80 1 CNY 80"]))
+        assert _find(exp, "展览")["category"] == "门票"
+
+    def test_tiyan_is_ticket(self):
+        """「茶道体验」（日本 PDF 常见条目）应为门票（付费活动体验）。"""
+        exp = _parse_expenses(_make(["茶道体验 CNY 200 1 CNY 200"]))
+        assert _find(exp, "体验")["category"] == "门票"
+
+
+class TestTeaDiningKeywords:
+    """下午茶 / 早茶 / 奶茶 是餐饮消费，应归餐饮。"""
+
+    def test_xiawucha_is_dining(self):
+        """「下午茶」应为餐饮。"""
+        exp = _parse_expenses(_make(["下午茶套餐 CNY 200 1 CNY 200"]))
+        assert _find(exp, "下午茶")["category"] == "餐饮"
+
+    def test_zaocha_is_dining(self):
+        """「早茶」（港式早茶）应为餐饮。"""
+        exp = _parse_expenses(_make(["早茶 CNY 120 1 CNY 120"]))
+        assert _find(exp, "早茶")["category"] == "餐饮"
+
+    def test_naicha_is_dining(self):
+        """「奶茶」应为餐饮。"""
+        exp = _parse_expenses(_make(["奶茶 CNY 25 1 CNY 25"]))
+        assert _find(exp, "奶茶")["category"] == "餐饮"
+
+
+class TestTransportPickupKeywords:
+    """接机/送机 是常见地接交通，应归交通。"""
+
+    def test_jieji_hcmc_is_transport(self):
+        """「胡志明接机」（越南 PDF 真实条目）应为交通。"""
+        exp = _parse_expenses(_make(["胡志明接机 CNY 306 1 CNY 306"]))
+        assert _find(exp, "接机")["category"] == "交通"
+
+    def test_songji_is_transport(self):
+        """「送机服务」应为交通。"""
+        exp = _parse_expenses(_make(["送机服务 CNY 200 1 CNY 200"]))
+        assert _find(exp, "送机")["category"] == "交通"
+
+
+class TestCuisineDiningKeywords:
+    """菜系名称（法餐/西餐/中餐等）是餐饮消费，应归餐饮。"""
+
+    def test_facai_is_dining(self):
+        """「法餐」（越南 PDF 真实条目）应为餐饮。"""
+        exp = _parse_expenses(_make(["法餐 CNY 3253 1 CNY 3253"]))
+        assert _find(exp, "法餐")["category"] == "餐饮"
+
+    def test_xican_is_dining(self):
+        """「西餐」应为餐饮。"""
+        exp = _parse_expenses(_make(["西餐 CNY 500 1 CNY 500"]))
+        assert _find(exp, "西餐")["category"] == "餐饮"
+
+    def test_rican_is_dining(self):
+        """「日餐」应为餐饮。"""
+        exp = _parse_expenses(_make(["日餐 CNY 300 1 CNY 300"]))
+        assert _find(exp, "日餐")["category"] == "餐饮"

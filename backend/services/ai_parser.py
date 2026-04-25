@@ -401,6 +401,8 @@ def _split_by_day(text):
     )
 
     days = []
+    _prev_pre_attraction = None  # 跨天去重：穷游 PDF 合并单元格会让同一行在相邻天各出现一次
+    hotel_line_re = re.compile(r'[\u4e00-\u9fff]{2,12}(?:酒店|宾馆|度假村|客栈|旅馆|民宿)')
     for i, m in enumerate(matches):
         day_num = int(m.group(1))
         marker_start = m.start()
@@ -412,7 +414,6 @@ def _split_by_day(text):
         # 优先找 `1. xxx` 形式的景点列首行；若本日无观光（e.g. 马尔代夫纯度假日），
         # 回退到最近 4 行内含中文酒店名的行（概览表「住宿」列首行），以便本日 chunk
         # 能拿到酒店名（如「马尔代夫 竞技场海滩酒店,Arena」）。
-        hotel_line_re = re.compile(r'[\u4e00-\u9fff]{2,12}(?:酒店|宾馆|度假村|客栈|旅馆|民宿)')
         for ln in reversed(pre_lines[-4:]):
             if re.search(r'(?:^|\s)1\.\s+(?:\d+\.\s+)*' + _ACT_START, ln):
                 pre_attraction_line = ln
@@ -422,6 +423,12 @@ def _split_by_day(text):
                 if hotel_line_re.search(ln):
                     pre_attraction_line = ln
                     break
+        # 穷游 PDF 概览表中若某单元格跨行合并，pdfminer 会将该行内容在相邻两天的
+        # 标记前各输出一次。去重：若与上一天完全相同，则丢弃本天的 pre_attraction_line，
+        # 避免前一天的活动/住宿被错误地归入下一天。
+        if pre_attraction_line and pre_attraction_line == _prev_pre_attraction:
+            pre_attraction_line = ''
+        _prev_pre_attraction = pre_attraction_line if pre_attraction_line else _prev_pre_attraction
 
         # Build body and trim its ending pre-marker line (= next day's row 1)
         body = text[marker_start:chunk_end]
@@ -483,8 +490,15 @@ def _extract_city_from_chunk(chunk):
                 return zh
 
     # 4. First known destination city (substring match)
+    # Guard: skip a match if it is immediately followed by a digit or CJK numeral,
+    # which indicates the city name is part of an airport proper noun rather than
+    # a destination city (e.g. 新山 inside 西贡新山一国际机场 = Tân Sơn Nhất Airport).
+    _AIRPORT_NUM_RE = re.compile(r'^[一二三四五六七八九十\d]')
     for city in DEST_CITIES:
-        if city in chunk:
+        for m in re.finditer(re.escape(city), chunk):
+            after = chunk[m.end():m.end() + 1]
+            if after and _AIRPORT_NUM_RE.match(after):
+                continue
             return city
 
     # 5. Year-month city without DEST_CITIES requirement
@@ -754,16 +768,23 @@ def _parse_expenses(text, start_date=None):
     CATEGORY_RULES = [
         # 日本常用 IC 卡 (SUICA/PASMO/ICOCA) 与铁路品牌 (JR/新干线/N'EX) 视为
         # 交通；港澳「八达通」同理。`\bJR\b` 避免命中 "JR..." 之外的英文词。
-        (r'交通|机票|航班|火车|高铁|大巴|船|包车|飞机|打车|出租车|的士|网约车|'
-         r'Grab|地铁|巴士|轮渡|渡轮|电车|電車|'
-         r'新干线|新幹線|\bJR\b|\bN[\'’]?EX\b|'
+        # `(?<!游)船`：排除「游船」（观光游览），只匹配真正用于通勤/摆渡的船。
+        # 接机/送机 是地接交通，归交通。
+        (r'交通|机票|航班|火车|高铁|大巴|(?<!游)船|包车|飞机|打车|出租车|的士|网约车|'
+         r'Grab|地铁|巴士|轮渡|渡轮|电车|電車|接机|送机|'
+         r"新干线|新幹線|\bJR\b|\bN[\'']?EX\b|"
          r'SUICA|ICOCA|PASMO|八达通|Octopus', '交通'),
         (r'酒店|宾馆|民宿|住宿|Hotel|hostel|客栈|旅馆|旅店|度假村|Resort|Inn|Lodge', '住宿'),
-        (r'午餐|晚餐|早餐|餐饮|餐厅|饭|美食|小吃|料理|咖啡|拉面|寿司|火锅|烧肉', '餐饮'),
+        # 菜系名称（法餐/西餐/中餐/日餐/韩餐/泰餐/越餐）均为餐饮；
+        # 下午茶/早茶/奶茶/茶点 也归餐饮。
+        (r'午餐|晚餐|早餐|餐饮|餐厅|饭|美食|小吃|料理|咖啡|拉面|寿司|火锅|烧肉|'
+         r'法餐|西餐|中餐|日餐|韩餐|泰餐|越餐|下午茶|早茶|奶茶|茶点', '餐饮'),
+        # 游船/游轮 是观光付费体验（非运输），归门票；
+        # 表演/展览/体验 同理（住宿/餐饮规则在前，不影响「住宿体验」「套餐」的判断）。
         (r'门票|景点|入场|一日游|半日游|游览|活动|博物馆|美术馆|动物园|水族馆|'
          r'植物园|城堡|宫殿|宫|主题乐园|主题公园|游乐园|乐园|游乐|缆车|观景|'
          r'遗址|神社|寺庙|瀑布|瞭望|Go\s*City|GOCITY|Skyline|Luge|滑车|滑索|'
-         r'蹦极|潜水|游艇', '门票'),
+         r'蹦极|潜水|游艇|游船|游轮|表演|展览|体验', '门票'),
         (r'购物|纪念品|免税|百货|商圈', '购物'),
     ]
     # Build activity-type lookup from PDF detail pages (e.g. 牛家→其他美食→餐饮)

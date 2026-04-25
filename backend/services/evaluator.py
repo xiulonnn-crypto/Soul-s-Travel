@@ -66,6 +66,26 @@ def _compute_tier_multiplier(profile, traveler_count):
     return max(0.5, min(2.5, ratio ** 0.55))
 
 
+def _extract_household_size(profile):
+    """从用户档案 family_description 中提取家庭常规出行人数。
+
+    供消费层级计算使用，避免因单次出行人数变化而误判层级。
+    - "夫妻两人" / "夫妻" / "情侣" → 2
+    - "两人"、"三人"、"四人" 等数字词 → 对应数字
+    - 无法识别时默认 1
+    """
+    if not profile:
+        return 1
+    desc = profile.get("family_description") or ""
+    _CN_NUM = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6}
+    m = re.search(r'([一两二三四五六])[人口]', desc)
+    if m:
+        return _CN_NUM.get(m.group(1), 1)
+    if any(kw in desc for kw in ("夫妻", "夫婦", "情侣", "情侶", "伴侣")):
+        return 2
+    return 1
+
+
 def _tier_label(multiplier):
     if multiplier < 0.7:
         return "经济型"
@@ -436,7 +456,7 @@ def _day_requires_accommodation(day):
     return not _is_transit_day(day)
 
 
-def _compute_accommodation_metrics(legs, expenses, benchmarks):
+def _compute_accommodation_metrics(legs, expenses, benchmarks, traveler_count=1):
     """住宿品质评分"""
     has_accommodation = 0
     required_days = 0
@@ -454,7 +474,7 @@ def _compute_accommodation_metrics(legs, expenses, benchmarks):
 
     hotel_expense = sum(e["amount"] for e in expenses if e.get("category") == "住宿")
     nights = max(has_accommodation, 1)
-    avg_nightly = hotel_expense / nights if hotel_expense else 0
+    avg_nightly = hotel_expense / nights / max(traveler_count, 1) if hotel_expense else 0
 
     # 对比基准
     market_hotel_avg = 0
@@ -527,8 +547,13 @@ def _compute_transport_metrics(legs):
     }
 
 
-def _compute_attractions_metrics(legs, benchmarks):
-    """景点覆盖评分：按停留人日相对典型停留调整期望，跨城日折减有效天；城市间按有效天加权。"""
+def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
+    """景点覆盖评分：按停留人日相对典型停留调整期望，跨城日折减有效天；城市间按有效天加权。
+
+    past_visited: {city: [activity, ...]} — 历史行程已去景点，合并入 visited 集合，
+                  使历史去过的必去点不再计入 missed。
+    """
+    past_visited = past_visited or {}
     city_results = []
     weighted_cov = 0.0
     weighted_raw = 0.0
@@ -549,6 +574,7 @@ def _compute_attractions_metrics(legs, benchmarks):
         for day in days:
             for act in day.get("activities", []):
                 visited.add(act)
+        visited.update(past_visited.get(city, []))
 
         covered = []
         missed = []
@@ -610,8 +636,12 @@ def _compute_attractions_metrics(legs, benchmarks):
 # 2. 城市维度评价
 # ---------------------------------------------------------------------------
 
-def _evaluate_city(leg, expenses, benchmarks):
-    """单个城市的综合评价"""
+def _evaluate_city(leg, expenses, benchmarks, past_visited=None):
+    """单个城市的综合评价
+
+    past_visited: {city: [activity, ...]} — 历史行程已去景点，合并入 visited 集合。
+    """
+    past_visited = past_visited or {}
     city = leg.get("city", "")
     bm = benchmarks.get(city, {})
     days = leg.get("days", [])
@@ -639,6 +669,7 @@ def _evaluate_city(leg, expenses, benchmarks):
     visited = set()
     for d in days:
         visited.update(d.get("activities", []))
+    visited.update(past_visited.get(city, []))
     covered = [s for s in must_see if any(s in v or v in s for v in visited)]
     missed = [s for s in must_see if s not in covered]
     if must_see:
@@ -918,7 +949,14 @@ def _generate_transport_text(m):
         parts.append("存在回头路，建议优化路线顺序以节省交通时间和费用")
     else:
         parts.append("路线规划合理，无回头路")
-    return "。".join(parts) + "。"
+
+    coverage = m.get("coverage", 0)
+    if coverage == 0:
+        parts.append("行程中暂无出行方式记录，补充后评分可进一步提升")
+    elif coverage < 50:
+        parts.append(f"目前仅 {coverage}% 的天数有出行方式记录，建议补充完整以获得更准确的评分")
+
+    return "，".join(parts) + "。"
 
 
 def _generate_transport_tags(m):
@@ -927,6 +965,13 @@ def _generate_transport_tags(m):
         tags.append({"type": "positive", "text": "路线合理"})
     else:
         tags.append({"type": "warning", "text": "存在回头路"})
+
+    coverage = m.get("coverage", 0)
+    if coverage == 0:
+        tags.append({"type": "info", "text": "暂无交通记录"})
+    elif coverage < 50:
+        tags.append({"type": "warning", "text": f"交通覆盖 {coverage}%"})
+
     return tags
 
 
@@ -1067,11 +1112,13 @@ def _generate_suggestions(trip, legs, cost_m, pace_m, attractions_m, benchmarks,
 # 4. 主入口
 # ---------------------------------------------------------------------------
 
-def generate_evaluation(trip_dict, profile=None):
+def generate_evaluation(trip_dict, profile=None, past_visited=None):
     """
     生成行程评价。
     trip_dict: Trip.to_dict(include_legs=True, include_expenses=True) 的结果
     profile: UserProfile.to_dict() 或 None
+    past_visited: {city: [activity, ...]} — 历史行程中该城市已去景点，
+                  供景点覆盖评估时扣除，避免将历史已访景点列为"遗漏"
     返回: {"overall_score": int, "evaluation_data": dict}
     """
     raw_benchmarks = _load_benchmarks()
@@ -1079,16 +1126,17 @@ def generate_evaluation(trip_dict, profile=None):
     expenses = trip_dict.get("expenses", [])
     traveler_count = max(trip_dict.get("traveler_count", 1), 1)
 
-    # 消费层级 & 季节调整
-    tier_mult = _compute_tier_multiplier(profile, traveler_count)
+    # 消费层级 & 季节调整（用家庭人数，不受单次行程出行人数影响）
+    household_size = _extract_household_size(profile)
+    tier_mult = _compute_tier_multiplier(profile, household_size)
     tier_lbl = _tier_label(tier_mult)
     benchmarks = _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs)
 
     cost_m = _compute_cost_metrics(trip_dict, legs, expenses, benchmarks)
     pace_m = _compute_pace_metrics(legs, benchmarks)
-    accom_m = _compute_accommodation_metrics(legs, expenses, benchmarks)
+    accom_m = _compute_accommodation_metrics(legs, expenses, benchmarks, traveler_count)
     transport_m = _compute_transport_metrics(legs)
-    attractions_m = _compute_attractions_metrics(legs, benchmarks)
+    attractions_m = _compute_attractions_metrics(legs, benchmarks, past_visited=past_visited)
 
     overall = _clamp(
         cost_m["score"] * 0.20 +
@@ -1103,7 +1151,7 @@ def generate_evaluation(trip_dict, profile=None):
 
     cities = []
     for leg in legs:
-        city_eval = _evaluate_city(leg, expenses, benchmarks)
+        city_eval = _evaluate_city(leg, expenses, benchmarks, past_visited=past_visited)
         cities.append(city_eval)
 
     suggestions = _generate_suggestions(trip_dict, legs, cost_m, pace_m,

@@ -212,15 +212,33 @@ def _build_legs(day_blocks, start_date: Optional[date]):
         return []
 
     year = start_date.year if start_date else datetime.now().year
-    days_info = []  # [(date, city, activities)]
+    days_info = []  # [(date, city, activities, transport, accommodation)]
     prev_city: Optional[str] = None
     prev_dt: Optional[date] = None
 
     for idx, (mm, dd, content, _header_idx) in enumerate(day_blocks):
-        # activities 过滤：丢弃纯时间 / 空行；保留混合行原文（如 "斯坦斯特德机场  11:30"）
-        activities = [ln for ln in content if not re.match(r'^\d{1,2}:\d{2}$', ln)]
+        # Build raw content (filter pure time lines)
+        raw_lines = [ln for ln in content if not re.match(r'^\d{1,2}:\d{2}$', ln)]
 
-        city = _infer_city(activities, prev_city)
+        # Transport: lines containing airport keywords but not hotel keywords
+        # (hotel names like "Moxy Edinburgh Airport" must not be misclassified)
+        transport = _pair_airports([
+            ln for ln in raw_lines
+            if _AIRPORT_RE.search(ln) and not _ACCOM_HINT_RE.search(ln)
+        ])
+
+        # Accommodation: last hotel line from all raw content
+        accommodation = _extract_accommodation(raw_lines)
+
+        # Activities: exclude airports, hotels, and PiTravel branding watermarks
+        activities = [
+            ln for ln in raw_lines
+            if not _AIRPORT_RE.search(ln)
+            and not _ACCOM_HINT_RE.search(ln)
+            and not _PITRAVEL_NOISE_RE.search(ln)
+        ]
+
+        city = _infer_city(raw_lines, prev_city)
 
         # 跨年：如果 month < 上一 day 的 month，视为进入下一年
         try:
@@ -234,14 +252,14 @@ def _build_legs(day_blocks, start_date: Optional[date]):
             except ValueError:
                 pass
 
-        days_info.append((dt, city, activities))
+        days_info.append((dt, city, activities, transport, accommodation))
         prev_city = city
         prev_dt = dt
 
     # 合并连续同 city
     city_legs: 'OrderedDict[str, dict]' = OrderedDict()
     day_number = 0
-    for dt, city, activities in days_info:
+    for dt, city, activities, transport, accommodation in days_info:
         day_number += 1
         if city not in city_legs:
             city_legs[city] = {'days': [], 'start': None, 'end': None}
@@ -251,8 +269,8 @@ def _build_legs(day_blocks, start_date: Optional[date]):
             'description': ', '.join(activities[:4]) if activities else f'Day {day_number}',
             'highlights': None,
             'activities': activities,
-            'transport': [],
-            'accommodation': _extract_accommodation(activities),
+            'transport': transport,
+            'accommodation': accommodation,
         }
         city_legs[city]['days'].append(day_entry)
         if dt:
@@ -286,6 +304,32 @@ _ACCOM_HINT_RE = re.compile(
     r'(?:酒店|宾馆|度假村|客栈|旅馆|民宿|Hotel|Inn|Resort|Airport\s+Hotel|Moxy)',
     re.IGNORECASE,
 )
+
+_AIRPORT_RE = re.compile(r'机场|Airport', re.IGNORECASE)
+
+# PiTravel / 圆周旅迹 海报的品牌水印行（OCR 可能把「圆」读作「园」）
+_PITRAVEL_NOISE_RE = re.compile(
+    r'[圆园]周旅迹|时.{0,3}自由.{0,6}经验',
+    re.IGNORECASE,
+)
+
+
+def _pair_airports(airport_lines: List[str]) -> List[str]:
+    """将相邻机场行两两合并为「出发机场 出发时间-到达机场 到达时间」航班段。
+
+    PiTravel 海报每个航班段占两行：第一行出发机场+时间，第二行到达机场+时间。
+    奇数个机场行时最后一行单独保留。
+    """
+    paired: List[str] = []
+    i = 0
+    while i < len(airport_lines):
+        if i + 1 < len(airport_lines):
+            paired.append(f'{airport_lines[i]}-{airport_lines[i + 1]}')
+            i += 2
+        else:
+            paired.append(airport_lines[i])
+            i += 1
+    return paired
 
 
 def _extract_accommodation(activities: List[str]) -> Optional[str]:

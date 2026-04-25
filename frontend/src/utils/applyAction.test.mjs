@@ -109,6 +109,122 @@ function test_missing_expenses_key_preserves_base() {
   assert.equal(merged.expenses.length, 3)
 }
 
+// ---------------------------------------------------------------------------
+// NEW TESTS — transport preservation across multi-source merge
+// ---------------------------------------------------------------------------
+
+// Real-world trip days with date field
+const PDF_WITH_FLIGHTS = {
+  type: 'trip',
+  trip: { title: '英国9日游', start_date: '2024-09-28', end_date: '2024-10-08', traveler_count: 1, status: 'completed' },
+  legs: [
+    {
+      order_index: 0, city: '伦敦', country: '英国',
+      days: [
+        { date: '2024-09-29', day_number: 1, activities: [], transport: [], accommodation: null },
+        { date: '2024-09-30', day_number: 2, activities: [], transport: [], accommodation: null },
+      ],
+    },
+    {
+      order_index: 1, city: '爱丁堡', country: '英国',
+      days: [
+        // 跨城日：PDF 捕获了航班
+        { date: '2024-10-03', day_number: 5, activities: [], transport: ['U2308:伦敦→爱丁堡'], accommodation: null },
+        { date: '2024-10-04', day_number: 6, activities: [], transport: [], accommodation: null },
+      ],
+    },
+  ],
+  expenses: [
+    { date: '2024-09-29', amount: 500, category: '住宿', description: '伦敦摄政公园万豪酒店' },
+  ],
+}
+
+const JPG_WITH_ACTIVITIES = {
+  type: 'trip',
+  trip: { title: '英国9日游', start_date: '2024-09-29', end_date: '2024-10-07', traveler_count: 1, status: 'completed' },
+  legs: [
+    {
+      order_index: 0, city: '伦敦', country: '英国',
+      days: [
+        // JPG 有丰富活动，但 transport 为空
+        { date: '2024-09-29', day_number: 1, activities: ['大英博物馆', 'OPSO', '摄政公园'], transport: [], accommodation: '伦敦摄政公园万豪酒店' },
+        { date: '2024-09-30', day_number: 2, activities: ['Madame Tussauds London', 'Baker Street'], transport: [], accommodation: '伦敦摄政公园万豪酒店' },
+      ],
+    },
+    {
+      order_index: 1, city: '爱丁堡', country: '英国',
+      days: [
+        // JPG 对跨城日也有活动，但没有 transport
+        { date: '2024-10-03', day_number: 5, activities: ['爱丁堡城堡', 'Makars Mash Bar'], transport: [], accommodation: '万豪爱丁堡官邸酒店' },
+        { date: '2024-10-04', day_number: 6, activities: ['The Balmoral', '洛蒙德湖'], transport: [], accommodation: '万豪爱丁堡官邸酒店' },
+      ],
+    },
+  ],
+  expenses: [],
+}
+
+/**
+ * 核心 bug 场景：PDF 先传（带航班 transport），JPG 后传（带活动但 transport=[]）
+ * → 合并后 JPG 的活动应保留，PDF 的 transport 不能被 [] 覆盖
+ */
+function test_jpg_over_pdf_preserves_day_transport() {
+  const merged = applyAction(PDF_WITH_FLIGHTS, JPG_WITH_ACTIVITIES)
+
+  // JPG 的活动应保留
+  const londonDay1 = merged.legs[0].days[0]
+  assert.deepEqual(
+    londonDay1.activities,
+    ['大英博物馆', 'OPSO', '摄政公园'],
+    'JPG activities should win on day 1',
+  )
+
+  // 跨城日：PDF 的 transport 不应被 JPG 的 [] 覆盖
+  const edinburghDay5 = merged.legs[1].days[0]
+  assert.deepEqual(
+    edinburghDay5.transport,
+    ['U2308:伦敦→爱丁堡'],
+    'PDF transport (flight) must survive JPG empty transport=[] on same date',
+  )
+
+  // JPG 的 accommodation 应保留（非空覆盖空）
+  assert.equal(londonDay1.accommodation, '伦敦摄政公园万豪酒店', 'JPG accommodation wins')
+
+  // expenses 从 PDF 保留
+  assert.equal(merged.expenses.length, 1, 'PDF expenses preserved')
+}
+
+/**
+ * 反向：PDF 后传覆盖 JPG → PDF 有 transport 的天，transport 应写入；
+ * JPG 的活动如果 PDF 对应天是空的，应被 PDF 覆盖（PDF 内容优先）。
+ */
+function test_pdf_over_jpg_activities_win() {
+  const merged = applyAction(JPG_WITH_ACTIVITIES, PDF_WITH_FLIGHTS)
+
+  // PDF 有 transport 的跨城日，transport 应保留
+  const edinburghDay5 = merged.legs[1].days[0]
+  assert.deepEqual(
+    edinburghDay5.transport,
+    ['U2308:伦敦→爱丁堡'],
+    'PDF transport preserved when PDF applied over JPG',
+  )
+
+  // PDF 对该天 activities=[]，JPG 有活动 — JPG 的活动应被保留（mergePreservingEmpty：空不覆盖非空）
+  assert.deepEqual(
+    edinburghDay5.activities,
+    ['爱丁堡城堡', 'Makars Mash Bar'],
+    'JPG activities survive when PDF activities=[] for same date',
+  )
+}
+
+/**
+ * 兼容性：没有 date 字段的 day（如旧测试 fixture）应原样通过，不报错。
+ */
+function test_days_without_date_pass_through() {
+  const merged = applyAction(PDF_RESULT, JPG_RESULT)
+  assert.equal(merged.legs.length, 2, 'leg count from JPG')
+  assert.equal(merged.expenses.length, 3, 'expenses from PDF preserved')
+}
+
 // --- Runner ------------------------------------------------------------------
 
 const tests = [
@@ -118,6 +234,9 @@ const tests = [
   test_expense_action_still_appends,
   test_null_expenses_preserves_base,
   test_missing_expenses_key_preserves_base,
+  test_jpg_over_pdf_preserves_day_transport,
+  test_pdf_over_jpg_activities_win,
+  test_days_without_date_pass_through,
 ]
 
 let failed = 0

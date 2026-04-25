@@ -1,32 +1,27 @@
 #!/usr/bin/env python3
-"""CHANGELOG 版本自动更新脚本
-
-由 `.githooks/pre-push` 调用，在推送前把 `[Unreleased]` 区块晋升为版本块。
+"""
+CHANGELOG 版本自动更新脚本
+由 .githooks/pre-push 调用，在推送前将 [Unreleased] 块版本化。
 
 用法：
     python3 bump_changelog.py [NEXT_VERSION]
 
-    NEXT_VERSION  显式指定版本号（如 0.2.0），省略则按以下规则自动递增：
-                  0.1.0 → 0.1.0-002 → 0.1.0-003 → ...
-                  NEXT_VERSION=0.2.0 重置基础版本 → 0.2.0 → 0.2.0-002 → ...
+    NEXT_VERSION  显式指定版本号（如 0.2.0）；省略则自动递增
+                  也可通过环境变量 NEXT_VERSION 传递
 
-面向 AI 协作者的规范（与 `CLAUDE.md` 的 CHANGELOG 章节保持一致）：
-    · 每条 bullet 必须是 `- **粗体子标题**：1–3 句面向用户的描述`
-    · 严禁代码标识符（文件名、函数名、库名、类名、配置键）与敏感技术栈信息
-    · 版本头格式：`## [x.y.z] - YYYY-MM-DD - 一句话主题摘要`
-      摘要为纯文本，不带粗体、不带全角冒号；本脚本自动剥离 `feat:` 等
-      Conventional Commits 前缀，以免技术前缀泄漏到面向用户的标题里。
+版本命名规则（无显式输入时）：
+    0.1.0 → 0.1.0-002 → 0.1.0-003 → ...
+    使用 NEXT_VERSION=0.2.0 重置基础版本：0.2.0 → 0.2.0-002 → ...
 
-本脚本只做版本头迁移与清洗，不校验内容合规；内容合规由
-`backend/tests/test_changelog_format.py` 的 linter 测试守护。
+CHANGELOG 标题格式（内联链接）：
+    ## [Unreleased](compare_url)
+    ## [0.1.0](release_url) - 2026-04-08
 """
-
-from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
+import subprocess
 from datetime import date
 from pathlib import Path
 from typing import Optional, Tuple
@@ -35,27 +30,34 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 CHANGELOG_PATH = PROJECT_ROOT / "CHANGELOG.md"
 
+# 匹配含或不含内联链接的 Unreleased 标题
+# 例：## [Unreleased]  或  ## [Unreleased](https://...)
 _RE_UNRELEASED_HEADING = re.compile(
     r"## \[Unreleased\](?:\([^)]*\))?",
     re.IGNORECASE,
 )
 
+# 匹配版本标题（含或不含内联链接及日期）
+# 例：## [0.1.0] - 2026-04-08  或  ## [0.1.0](url) - 2026-04-08
 _RE_VERSION_HEADING = re.compile(
     r"## \[(\d+\.\d+\.\d+(?:-\d{3})?)\](?:\([^)]*\))?",
 )
 
-# 误写进 [Unreleased] 的 `> Theme: ...` 引用块；晋升时必须剥离，避免
-# 遗留到新 released block 头顶造成摘要重复。
+# 匹配紧跟 [Unreleased] 之后的 `> Theme: …` blockquote
+# skill 规则：Theme 行仅存在于 [Unreleased]，version bump 时必须删除，
+# 否则会在 released block 头顶遗留"重复摘要"（违反 Keep a Changelog 的
+# "release 时 Theme 合并进标题、不与标题重复"约束）。
 _RE_THEME_AFTER_UNRELEASED = re.compile(
-    r"(## \[Unreleased\](?:\([^)]*\))?[ \t]*\n)"
-    r"([ \t]*\n)+"
-    r">[ \t]*Theme:[^\n]*\n"
-    r"(?:[ \t]*\n)?",
+    r"(## \[Unreleased\](?:\([^)]*\))?[ \t]*\n)"  # 1 号捕获：Unreleased 标题行
+    r"([ \t]*\n)+"                                # 1 条或多条空行
+    r">[ \t]*Theme:[^\n]*\n"                      # Theme 行本身
+    r"(?:[ \t]*\n)?",                             # 可选的尾随空行
     re.IGNORECASE,
 )
 
-# Conventional Commits 前缀：feat / fix / chore / docs / refactor / test /
-# style / perf / build / ci / revert，可带 scope 与 `!` 破坏性标记。
+# 匹配 Conventional Commits 前缀：feat / fix / chore / docs / refactor /
+# test / style / perf / build / ci / revert，可带 scope 与 `!` 破坏标记
+# 例：feat: xxx   fix(api): xxx   refactor!: xxx
 _RE_CC_PREFIX = re.compile(
     r"^(?:feat|fix|chore|docs|refactor|test|style|perf|build|ci|revert)"
     r"(?:\([^)]+\))?"
@@ -64,6 +66,22 @@ _RE_CC_PREFIX = re.compile(
     re.IGNORECASE,
 )
 
+# 匹配紧跟 [Unreleased] 之后的 `> Theme: …` 行里的主题文字（不含前缀本身）
+_RE_THEME_TEXT = re.compile(
+    r"## \[Unreleased\](?:\([^)]*\))?[ \t]*\n"
+    r"[ \t]*\n"
+    r">[ \t]*Theme:[ \t]*([^\n]+)\n",
+    re.IGNORECASE,
+)
+
+# 版本标题摘要长度上限（按 Unicode 字符数；CJK 与拉丁一视同仁）
+# skill 规则："stand-alone concise sentence ≤ 30 Chinese chars / ~8 English words"
+_SUMMARY_MAX_CHARS = 40
+
+
+# ---------------------------------------------------------------------------
+# 读写
+# ---------------------------------------------------------------------------
 
 def read_changelog() -> str:
     return CHANGELOG_PATH.read_text(encoding="utf-8")
@@ -73,7 +91,12 @@ def write_changelog(content: str) -> None:
     CHANGELOG_PATH.write_text(content, encoding="utf-8")
 
 
+# ---------------------------------------------------------------------------
+# 解析
+# ---------------------------------------------------------------------------
+
 def has_unreleased_content(content: str) -> bool:
+    """检查 [Unreleased] 部分是否有实质性内容（非空行）"""
     m = _RE_UNRELEASED_HEADING.search(content)
     if not m:
         return False
@@ -87,25 +110,96 @@ def has_unreleased_content(content: str) -> bool:
 
 
 def get_latest_version(content: str) -> Optional[str]:
+    """返回最新的已发布版本号（跳过 Unreleased）"""
     matches = _RE_VERSION_HEADING.findall(content)
     return matches[0] if matches else None
 
 
 def strip_theme_after_unreleased(content: str) -> str:
-    """晋升前删除紧跟 `[Unreleased]` 的 `> Theme: ...` 引用块。"""
+    """删除紧跟 `## [Unreleased]` 之后的 `> Theme: …` blockquote。
+
+    把 `[Unreleased]` 晋升为版本块时，若不先剥离该行，Theme 就会遗留在新
+    released block 的头顶，造成"标题摘要 + Theme"重复两遍同一句话。参见
+    coding/debugging skill 关于 "Theme collapses into the heading" 的约束。
+
+    未发现 Theme 行时原样返回。
+    """
     m = _RE_THEME_AFTER_UNRELEASED.search(content)
     if not m:
         return content
+    # 仅保留 Unreleased 标题行 + 一条空行，Theme 块完整消除
     replacement = m.group(1) + "\n"
     return content[: m.start()] + replacement + content[m.end():]
 
 
 def strip_commit_prefix(subject: str) -> str:
-    """剥离 `feat:` / `fix(scope):` / `refactor!:` 等 Conventional Commits 前缀。"""
+    """剥离 Conventional Commits 前缀（feat: / fix: / chore(scope): / feat!: 等）。
+
+    CHANGELOG 标题摘要应面向用户可读，不应保留提交消息的技术前缀。
+    无前缀时原样返回。
+    """
     return _RE_CC_PREFIX.sub("", subject, count=1)
 
 
+def extract_theme_summary(content: str) -> Optional[str]:
+    """若 [Unreleased] 下方存在 `> Theme: XXX` 行，返回 XXX 作为版本摘要候选。
+
+    skill 规则要求"Theme 折叠进标题"：release 时 Theme 的文字内容应成为版本
+    标题的摘要，而不是被丢弃；同时 Theme 行本身需从 released block 剥离
+    （由 `strip_theme_after_unreleased` 负责）。
+    """
+    m = _RE_THEME_TEXT.search(content)
+    if not m:
+        return None
+    return m.group(1).strip()
+
+
+def _looks_like_bullet_leakage(summary: str) -> bool:
+    """检测 summary 是否疑似从 bullet 内容粘贴而来。
+
+    skill 的"Heading-summary independence rule"禁止标题摘要从第一条 bullet 的
+    粗体标签复制。最可靠的信号是 summary 里出现 Markdown 粗体标记 `**`。
+    """
+    return "**" in summary
+
+
+def sanitize_summary(raw: Optional[str]) -> Optional[str]:
+    """对版本标题摘要做最终清洗：
+      - None / 空字符串 → None
+      - 含 `**` 粗体标记（bullet 泄漏迹象）→ 丢弃
+      - 超长 → 按 Unicode 字符截断到 _SUMMARY_MAX_CHARS，末尾加一个省略号
+      - 首尾空白 / 连续空白 → 归一化
+    """
+    if not raw:
+        return None
+
+    s = raw.strip()
+    if not s:
+        return None
+
+    if _looks_like_bullet_leakage(s):
+        return None
+
+    s = re.sub(r"\s+", " ", s)
+
+    if len(s) > _SUMMARY_MAX_CHARS:
+        s = s[: _SUMMARY_MAX_CHARS - 1].rstrip() + "…"
+
+    return s
+
+
+# ---------------------------------------------------------------------------
+# 版本计算
+# ---------------------------------------------------------------------------
+
 def compute_next_version(latest: Optional[str], explicit: Optional[str]) -> str:
+    """
+    计算下一个版本号。
+      - explicit 非空：直接使用（去掉前缀 v）
+      - latest 为 None：返回 '0.1.0'
+      - latest 无后缀（如 '0.1.0'）：返回 '0.1.0-002'
+      - latest 有后缀（如 '0.1.0-002'）：返回 '0.1.0-003'
+    """
     if explicit:
         return explicit.lstrip("v")
 
@@ -120,8 +214,12 @@ def compute_next_version(latest: Optional[str], explicit: Optional[str]) -> str:
     return f"{base}-002" if suffix is None else f"{base}-{int(suffix) + 1:03d}"
 
 
+# ---------------------------------------------------------------------------
+# 提交摘要
+# ---------------------------------------------------------------------------
+
 def get_commit_summary() -> str:
-    """取本次推送新增提交的一句话摘要，用于版本头主题。"""
+    """获取本次推送新增提交的一句话摘要"""
     def _run(args):
         try:
             r = subprocess.run(args, capture_output=True, text=True, timeout=5)
@@ -142,38 +240,65 @@ def get_commit_summary() -> str:
     return re.sub(r"^[a-f0-9]+ ", "", out) if out else "日常更新"
 
 
+# ---------------------------------------------------------------------------
+# 构建新标题
+# ---------------------------------------------------------------------------
+
 def build_unreleased_heading() -> str:
+    """生成新的 [Unreleased] 标题（纯文本，无链接）"""
     return "## [Unreleased]"
 
 
 def build_version_heading(new_ver: str, today: str, summary: Optional[str] = None) -> str:
+    """生成新版本标题（纯文本，无链接）；有摘要时附在日期后"""
     heading = f"## [{new_ver}] - {today}"
     if summary:
         heading += f" - {summary}"
     return heading
 
 
+# ---------------------------------------------------------------------------
+# 主流程
+# ---------------------------------------------------------------------------
+
 def bump(explicit_version: Optional[str] = None) -> Optional[Tuple[str, str]]:
+    """
+    执行 CHANGELOG 版本更新。
+
+    返回 (new_version, summary) 如果做了更新；
+    返回 None 如果 [Unreleased] 为空（跳过）。
+    """
     content = read_changelog()
 
     if not has_unreleased_content(content):
         print("[CHANGELOG] [Unreleased] 部分无内容，跳过版本更新")
         return None
 
+    # skill 规则：Theme 优先 —— 先从 Unreleased 下方抽出 Theme 文字作为摘要
+    # 候选，再把 Theme 行从内容中剥离，避免遗留到 released block 造成重复。
+    theme_summary = extract_theme_summary(content)
     content = strip_theme_after_unreleased(content)
 
     prev_ver = get_latest_version(content)
     new_ver = compute_next_version(prev_ver, explicit_version)
     today = date.today().isoformat()
+
+    # 摘要优先级：显式版本号 → 无摘要；否则 Theme → commit subject。
+    # 最终一律经 sanitize_summary 过一遍（丢弃 bullet 泄漏、截长、归一化）。
     if explicit_version:
         summary = None
+    elif theme_summary:
+        summary = sanitize_summary(theme_summary)
     else:
         raw = get_commit_summary()
-        summary = strip_commit_prefix(raw) if raw else raw
+        candidate = strip_commit_prefix(raw) if raw else raw
+        summary = sanitize_summary(candidate)
 
+    # 构建新标题
     unreleased_heading = build_unreleased_heading()
     version_heading = build_version_heading(new_ver, today, summary)
 
+    # 替换旧 Unreleased 标题 → 新 Unreleased 标题 + 版本标题（两者之间空一行）
     old_unreleased = _RE_UNRELEASED_HEADING.search(content)
     if not old_unreleased:
         print("[CHANGELOG] 未找到 [Unreleased] 标题，跳过")

@@ -1,22 +1,24 @@
 #!/bin/bash
 # .githooks/pre-push
 #
-# 推送到远端之前把 CHANGELOG.md 的 [Unreleased] 块版本化：
+# 推送前把 CHANGELOG.md 的 [Unreleased] 块版本化：
 #   - 若环境变量 NEXT_VERSION 已设置 → 使用该版本号
-#   - 否则 → 自动递增（如 0.1.0 → 0.1.0-002 → 0.1.0-003 ...）
+#   - 否则 → 自动递增（0.1.0 → 0.1.0-002 → 0.1.0-003 ...）
 #
-# 激活方式（新 clone 或换机器后在项目根目录执行一次）：
+# 激活方式（项目根目录执行一次）：
 #   git config core.hooksPath .githooks
 #
 # 用法示例：
 #   git push                         # 自动递增版本
 #   NEXT_VERSION=0.2.0 git push      # 指定新版本号
-#   git push --no-verify             # 跳过本 hook（CHANGELOG 不处理）
+#   git push --no-verify             # 跳过本 hook
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CHANGELOG="$PROJECT_ROOT/CHANGELOG.md"
 BUMP_SCRIPT="$SCRIPT_DIR/bump_changelog.py"
+
+# ── 前置检查 ──────────────────────────────────────────────────────────────────
 
 if [ ! -f "$CHANGELOG" ]; then
     echo "[pre-push] CHANGELOG.md 不存在，跳过"
@@ -27,6 +29,8 @@ if ! command -v python3 &>/dev/null; then
     echo "[pre-push] ⚠️  python3 未找到，跳过 CHANGELOG 自动更新"
     exit 0
 fi
+
+# ── 执行版本更新 ───────────────────────────────────────────────────────────────
 
 cd "$PROJECT_ROOT"
 
@@ -41,6 +45,8 @@ if [ $BUMP_EXIT -ne 0 ]; then
     echo "[pre-push] ⚠️  CHANGELOG 更新脚本异常退出（code=$BUMP_EXIT），继续推送"
     exit 0
 fi
+
+# ── 若 CHANGELOG 有改动则提交 ─────────────────────────────────────────────────
 
 if ! git diff --quiet "$CHANGELOG" 2>/dev/null; then
     NEW_VER=$(python3 - <<'EOF'
