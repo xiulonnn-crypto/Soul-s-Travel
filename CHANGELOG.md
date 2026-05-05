@@ -6,7 +6,7 @@ Soul's Travel 所有版本的变更记录，格式遵循 [Keep a Changelog](http
 
 ## [Unreleased]
 
-> Theme: PDF 行程解析对长城市名、中英混合酒店与跨日内容的整体修正
+## [0.1.0-006] - 2026-05-06 - PDF 行程解析对长城市名、中英混合酒店与跨日内容的整体修正
 
 ### Added
 
