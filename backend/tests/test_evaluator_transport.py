@@ -63,12 +63,23 @@ class TestTransportMetricsScore:
         assert m["coverage"] == 100
 
     def test_partial_coverage_score(self):
-        """4/7 days with transport: coverage≈57% → 70 + 4/7*25 ≈ 84"""
-        transport_days = [["高铁"], None, ["打车"], ["地铁"], None, ["出租车"], None]
-        legs = _make_legs([("伦敦", transport_days)])
+        """跨城日部分有 transport 记录时部分覆盖：
+
+        3 城（北京→上海→广州，2 次跨城）但只有第一次跨城填了大交通，
+        另一次跨城用户用了城内交通词忘记填大交通 → 50% 覆盖。
+        城内日的打车 / 地铁不计入分母，避免要求每天都填 transport。
+        """
+        legs = _make_legs([
+            ("北京", [["航班"]]),    # day1 跨城日，记录 ✓
+            ("上海", [["打车"]]),     # day2 城内日（仅打车）
+            ("广州", [["地铁"]]),     # day3 城内日（仅地铁）— 实际是从上海跨到广州但用户没填
+        ])
         m = _compute_transport_metrics(legs)
-        assert m["score"] == 84  # 70 + 4/7*25 = 84.28 → 84
-        assert m["coverage"] == 57  # round(4/7*100) = 57
+        # 实际识别 transit_day = 1; inferred = 3-1 = 2; max → 2
+        # has_transport_transit = 1
+        assert m["coverage"] == 50, m
+        # base = 70 + 0.5*25 = 82.5; 无 backtrack
+        assert m["score"] == 82, m
 
     def test_backtrack_deducts_15(self):
         """回头路 -15 分"""
@@ -92,6 +103,73 @@ class TestTransportMetricsScore:
         m = _compute_transport_metrics(legs)
         assert m["has_backtrack"] is False
         assert m["city_route"] == "伦敦 → 爱丁堡"
+
+    def test_multi_day_stays_only_transit_days_have_transport(self):
+        """回归 trip 9: 多日停留的城市，城内日不填 transport，
+        所有跨城日都用航班/航班码记录 → 必须 100% 覆盖、95 分。
+
+        曾经的 bug: 旧逻辑用 total_days 作分母，把"城内日没填 transport"
+        也算成覆盖率欠缺，结果 8 天 / 3 跨城日 → 38% / 79 分,
+        与"路线合理无回头路"的正面评价自相矛盾。
+        """
+        legs = [
+            {"city": "曼谷", "days": [
+                {"day_number": 1, "transport": ["HU429:北京→曼谷"], "activities": ["大皇宫"]},
+                {"day_number": 2, "transport": [],                  "activities": ["卧佛寺"]},
+                {"day_number": 3, "transport": [],                  "activities": ["郑王庙"]},
+            ]},
+            {"city": "清迈", "days": [
+                {"day_number": 4, "transport": ["FD3447:曼谷→清迈"], "activities": ["古城"]},
+                {"day_number": 5, "transport": [],                   "activities": ["素贴山"]},
+                {"day_number": 6, "transport": [],                   "activities": ["夜市"]},
+                {"day_number": 7, "transport": ["SL509:清迈→曼谷",
+                                                "FD600:曼谷→北京"], "activities": []},
+            ]},
+            {"city": "清莱", "days": [
+                {"day_number": 8, "transport": [], "activities": ["白庙"]},
+            ]},
+        ]
+        m = _compute_transport_metrics(legs)
+        assert m["coverage"] == 100, m
+        assert m["score"] == 95, m
+        assert m["has_backtrack"] is False, m
+        assert m["transit_total"] == 3, m
+
+    def test_pure_arrow_intercity_transport_recognized_as_transit(self):
+        """回归 trip 3 (2019 日本): 跨城 transport 仅含纯箭头格式"城A→城B"，
+        不含航班码也不含"航班"等关键词，但仍必须被识别为 transit_day。
+
+        线性 4 城 (东京→京都→奈良→大阪)，5 个跨城日全部用纯箭头记录，
+        中间穿插 3 个城内日 transport 为空 → 正确分母仅含 5 跨城日，
+        coverage=100%, score=95。
+
+        曾经的 bug: 旧逻辑分母 = 全部 8 天，5/8=62% → 86 分，
+        让"路线规划合理"被"记录习惯"误判扣分。
+        """
+        legs = [
+            {"city": "东京", "days": [
+                {"day_number": 1, "transport": ["UO622:香港→东京"], "activities": ["新宿"]},
+                {"day_number": 2, "transport": [],                  "activities": ["浅草寺"]},
+                {"day_number": 3, "transport": [],                  "activities": ["迪士尼"]},
+            ]},
+            {"city": "京都", "days": [
+                {"day_number": 4, "transport": ["东京→京都"],       "activities": ["清水寺"]},
+            ]},
+            {"city": "奈良", "days": [
+                {"day_number": 5, "transport": ["京都→奈良"],       "activities": ["奈良公园"]},
+            ]},
+            {"city": "大阪", "days": [
+                {"day_number": 6, "transport": ["奈良→大阪"],       "activities": ["心斋桥"]},
+                {"day_number": 7, "transport": [],                  "activities": ["大阪城"]},
+                {"day_number": 8, "transport": ["大阪→香港"],       "activities": []},
+            ]},
+        ]
+        m = _compute_transport_metrics(legs)
+        assert m["transit_total"] == 5, m
+        assert m["coverage"] == 100, m
+        assert m["score"] == 95, m
+        assert m["has_backtrack"] is False, m
+        assert m["city_route"] == "东京 → 京都 → 奈良 → 大阪", m
 
 
 # ---------------------------------------------------------------------------

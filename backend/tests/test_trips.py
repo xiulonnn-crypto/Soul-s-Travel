@@ -82,6 +82,31 @@ def test_update_trip(client):
     assert resp2.get_json()["title"] == "Updated"
 
 
+def test_update_trip_invalidates_evaluation_cache(client):
+    """修改行程后旧 evaluation 缓存必须失效，避免遗漏景点等基于过期 leg/day 数据。"""
+    resp = client.post("/api/trips", json=SAMPLE_TRIP)
+    trip_id = resp.get_json()["id"]
+
+    session = get_session()
+    session.add(TripEvaluation(
+        trip_id=trip_id,
+        overall_score=85,
+        evaluation_data=json.dumps({"summary": "stale"}),
+    ))
+    session.commit()
+    session.close()
+
+    resp2 = client.put(f"/api/trips/{trip_id}", json={"title": "Changed"})
+    assert resp2.status_code == 200
+
+    session = get_session()
+    remaining = session.query(TripEvaluation).filter_by(trip_id=trip_id).count()
+    session.close()
+    assert remaining == 0, (
+        f"Expected stale evaluation cache to be cleared on PUT, found {remaining}"
+    )
+
+
 def test_delete_trip(client):
     resp = client.post("/api/trips", json=SAMPLE_TRIP)
     trip_id = resp.get_json()["id"]
@@ -178,7 +203,13 @@ MULTI_LEG_TRIP = {
             "country": "韩国",
             "start_date": "2023-09-01",
             "end_date": "2023-09-05",
-            "days": [],
+            "days": [{
+                "day_number": 1,
+                "date": "2023-09-01",
+                "activities": ["景福宫"],
+                "transport": [],
+                "accommodation": "Hotel Seoul",
+            }],
         },
         {
             "order_index": 2,
@@ -186,7 +217,13 @@ MULTI_LEG_TRIP = {
             "country": "韩国",
             "start_date": "2023-09-05",
             "end_date": "2023-09-10",
-            "days": [],
+            "days": [{
+                "day_number": 1,
+                "date": "2023-09-05",
+                "activities": ["汉拿山"],
+                "transport": [],
+                "accommodation": "Hotel Jeju",
+            }],
         },
     ],
     "expenses": [],

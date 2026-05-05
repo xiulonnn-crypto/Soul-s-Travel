@@ -2,8 +2,9 @@ import json
 from datetime import date
 from flask import Blueprint, request, jsonify
 from database import get_session
-from models import Trip, Leg, TripDay, Expense
+from models import Trip, Leg, TripDay, Expense, TripEvaluation
 from routes.profile import _get_or_create_profile
+from services.evaluator import _is_non_sightseeing_leg
 
 trips_bp = Blueprint("trips", __name__)
 
@@ -13,10 +14,13 @@ def _sync_visited_destinations(session):
 
     按 (trip_id, country) 分组，每次行程独立一条记录，时间取 Trip.start_date 所在年月。
     格式：{country: [{"date": "YYYY-MM", "cities": [...]}, ...]}
+
+    与 Trip.to_dict(include_summary=True) 生成 destination_label 的语义保持一致：
+    返程终点 / 纯中转（无任何游览证据）的 leg 不计入「去过的地方」，避免把仅经停
+    的城市错误聚合为已去过（典型如返程当日的北京、5h 转机的文莱）。
     """
-    rows = (
-        session.query(Trip.id, Trip.start_date, Leg.country, Leg.city)
-        .join(Leg, Leg.trip_id == Trip.id)
+    trips = (
+        session.query(Trip)
         .filter(Trip.status == "completed")
         .filter(Trip.is_deleted == False)  # noqa: E712
         .order_by(Trip.start_date)
@@ -24,15 +28,18 @@ def _sync_visited_destinations(session):
     )
     # {(trip_id, country): {"date": "YYYY-MM", "cities": [...]}}
     trip_country: dict = {}
-    for trip_id, trip_start, country, city in rows:
-        key = (trip_id, country)
-        if key not in trip_country:
-            trip_country[key] = {
-                "date": f"{trip_start.year:04d}-{trip_start.month:02d}",
-                "cities": [],
-            }
-        if city not in trip_country[key]["cities"]:
-            trip_country[key]["cities"].append(city)
+    for trip in trips:
+        for leg in trip.legs:
+            if _is_non_sightseeing_leg(leg.to_dict(include_days=True)):
+                continue
+            key = (trip.id, leg.country)
+            if key not in trip_country:
+                trip_country[key] = {
+                    "date": f"{trip.start_date.year:04d}-{trip.start_date.month:02d}",
+                    "cities": [],
+                }
+            if leg.city not in trip_country[key]["cities"]:
+                trip_country[key]["cities"].append(leg.city)
 
     nested: dict = {}
     for (_, country), data in trip_country.items():
@@ -226,6 +233,11 @@ def update_trip(trip_id):
                     date=_parse_date(exp_data.get("date"), trip_start),
                 )
                 session.add(expense)
+
+        # 行程数据有变更 → 同步使评价缓存失效，下次 GET 会基于新数据重新生成。
+        # 否则用户会看到基于过期 leg/day/expense 的旧"遗漏景点"和"花费评分"。
+        for ev in session.query(TripEvaluation).filter_by(trip_id=trip.id).all():
+            session.delete(ev)
 
         session.commit()
         try:

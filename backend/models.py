@@ -5,6 +5,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from database import Base
+from services.evaluator import _is_non_sightseeing_leg
 
 
 class Trip(Base):
@@ -47,7 +48,12 @@ class Trip(Base):
             seen = []
             for leg in legs:
                 label = leg.city if leg.country == "中国" else leg.country
-                if label and label != "[待确认]" and label not in seen:
+                if not label or label == "[待确认]":
+                    continue
+                # 与评分系统语义一致：返程终点 / 纯中转 leg 不计入卡片目的地
+                if _is_non_sightseeing_leg(leg.to_dict(include_days=True)):
+                    continue
+                if label not in seen:
                     seen.append(label)
             d["destination_label"] = " · ".join(seen) if seen else ""
             d["leg_count"] = len(legs)

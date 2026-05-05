@@ -513,6 +513,26 @@ city_score = cost_sub × 0.25 + spot_sub × 0.30 + pace_sub × 0.25 + stay_sub �
 
 **注意**：修改评价公式/权重/基准数据后，所有历史缓存都是按旧模型算出的陈旧值。要让用户看到新结果，必须 POST 触发再生成（或手动清理 `trip_evaluations`）。
 
+#### 11. 非游览 leg 排除：必须贯穿 7 个应用点
+
+`_is_non_sightseeing_leg(leg)` 用于把「文莱 5 小时中转 / 北京返程终点站」这类无任何游览证据的段从评分模型中剔除。**判定 = 所有 days 无 activities，且不存在「非中转日 + 有住宿」的实质性停留**。第 2 条用于区分「机场过夜中转」与「胡志明市 8 晚度假但活动空」——前者要排除，后者不能误判。
+
+新增涉及评价的代码或维度时，必须同时检查这 7 个应用点都已贯彻该排除逻辑（否则会出现「在某个维度仍把中转城拉低分数」或「某个 UI 区块仍渲染中转城卡片」等局部回归）：
+
+| # | 应用点 | 实现位置（services/evaluator.py） | 排除方式 |
+|---|---|---|---|
+| 1 | attractions 整体覆盖率加权 | `_compute_attractions_metrics` | weight=0 |
+| 2 | attractions 单城 missed 列表 | `_compute_attractions_metrics` 末段 | `missed=[]` |
+| 3 | accommodation `required_days` / `has_accommodation` 分母 | `_compute_accommodation_metrics` | `continue` 跳过整 leg |
+| 4 | accommodation `nights_by_city` 加权 market_avg | `_compute_accommodation_metrics` | 同上（夜数不累加） |
+| 5 | cost market_avg 按 effective_days 加权 | `_compute_cost_metrics` | `continue` 跳过整 leg |
+| 6 | 单 leg 城市评价（`_evaluate_city`） | 早返简化路径 | 返回 score=75 + `非游览=True` 标识 |
+| 7 | 顶层 cities 列表（`generate_evaluation`） | 列表生成处 | `continue` 不加入 |
+
+**例外**：`_compute_transport_metrics` **不**用此函数过滤——交通规划的 city_route 必须保留全部经过城市才能完整反映路径，且 transit 日定义已经天然排除了城内日。
+
+**测试守护**：`tests/test_evaluator_non_sightseeing_legs.py` 同时覆盖 trip 10（文莱中转 + 北京终点）与 trip 12（胡志明度假 + 富国度假，activities 空但有住宿）的 fixture，新加维度时跑这一文件能 RED 出任意一个应用点的遗漏。
+
 ---
 
 ## NLU 系统

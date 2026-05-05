@@ -133,6 +133,8 @@ _EN_TO_ZH_CITY = {
     'Tromsø': '特罗姆瑟', 'Geiranger': '盖朗厄尔',
     # 肯尼亚
     'Nairobi': '内罗毕', 'Mombasa': '蒙巴萨', 'Malindi': '马林迪',
+    'Maasai Mara': '马赛马拉国家保护区', 'Masai Mara': '马赛马拉国家保护区',
+    'Nakuru': '纳库鲁', 'Naivasha': '奈瓦沙',
     # 埃及
     'Cairo': '开罗', 'Luxor': '卢克索', 'Aswan': '阿斯旺',
     'Sharm el-Sheikh': '沙姆沙伊赫', 'Hurghada': '赫尔格达',
@@ -187,6 +189,7 @@ DEST_CITIES = [
     '奥斯陆', '卑尔根', '特罗姆瑟', '盖朗厄尔',
     # 肯尼亚
     '内罗毕', '蒙巴萨', '马林迪',
+    '马赛马拉国家保护区', '纳库鲁', '奈瓦沙',
     # 埃及
     '开罗', '卢克索', '阿斯旺', '沙姆沙伊赫', '赫尔格达', '亚历山大', '阿布辛贝',
     # 其他已有
@@ -253,6 +256,7 @@ COUNTRY_MAP = {
     '奥斯陆': '挪威', '卑尔根': '挪威', '特罗姆瑟': '挪威', '盖朗厄尔': '挪威',
     # 肯尼亚
     '内罗毕': '肯尼亚', '蒙巴萨': '肯尼亚', '马林迪': '肯尼亚',
+    '马赛马拉国家保护区': '肯尼亚', '纳库鲁': '肯尼亚', '奈瓦沙': '肯尼亚',
     # 埃及
     '开罗': '埃及', '卢克索': '埃及', '阿斯旺': '埃及', '沙姆沙伊赫': '埃及',
     '赫尔格达': '埃及', '亚历山大': '埃及', '阿布辛贝': '埃及',
@@ -290,17 +294,37 @@ def _normalize(text):
         '\u2ee9': '\u9ec4',  # ⻩ YELLOW → 黄
     }
     text = ''.join(_RS_MAP.get(ch, ch) for ch in text)
-    result = []
-    i = 0
-    while i < len(text):
-        ch = text[i]
-        if '\u4e00' <= ch <= '\u9fff' and i + 1 < len(text) and text[i + 1] == ch:
-            result.append(ch)
-            i += 2
-        else:
-            result.append(ch)
-            i += 1
-    text = ''.join(result)
+
+    # Fold doubled CJK only on lines that exhibit the doubling pattern globally.
+    # 穷游 PDF detail 页常见全字 doubling（"北北京京 多多哈哈" / "DDAAYY1"），
+    # 而 overview 页是单写文本（"中国国际大酒店"、"勒纳纳蒙特瑞士酒店"）。
+    # 旧的"无差别相邻同字折叠"会把后者错伤为"中国际"/"勒纳蒙特"。
+    # 行级判定：当整行里相邻 CJK 同字成对的比例 ≥50% 才视为 doubled，方可折叠。
+    out_lines = []
+    for line in text.split('\n'):
+        cjk_chars = [c for c in line if '\u4e00' <= c <= '\u9fff']
+        if len(cjk_chars) >= 4:
+            pair_count = sum(
+                1 for j in range(len(cjk_chars) - 1)
+                if cjk_chars[j] == cjk_chars[j + 1]
+            )
+            # 阈值：成对位置数 ≥ CJK 总数的一半 - 1（"北北京京"=2/3≈67%）
+            if pair_count * 2 >= len(cjk_chars) - 1:
+                folded = []
+                k = 0
+                while k < len(line):
+                    ch = line[k]
+                    if ('\u4e00' <= ch <= '\u9fff'
+                            and k + 1 < len(line) and line[k + 1] == ch):
+                        folded.append(ch)
+                        k += 2
+                    else:
+                        folded.append(ch)
+                        k += 1
+                out_lines.append(''.join(folded))
+                continue
+        out_lines.append(line)
+    text = '\n'.join(out_lines)
 
     # Fix PDF-doubled digit sequences in day-header context without touching
     # amounts elsewhere. Examples: 第第11天天→第1天, 第第1100天天→第10天,
@@ -396,8 +420,13 @@ def _split_by_day(text):
         return []
 
     _ACT_START = r'[\u4e00-\u9fff\u3040-\u30ffA-Za-z]'
+    # Bug E 修复：穷游 PDF 概览表里某天若"景点"列为空（用户当天纯交通），
+    # row1 文本只有"时间段 + 住宿名"（如 Day 7 的"马赛马拉国家  16:00 - 16:45  中国国际大酒店"），
+    # 不含 "1." 序号。旧 premarker_re 仅识别 "1. xxx"，导致这类 row1 被错归到上一天 chunk。
+    # 加入"HH:MM - HH:MM 后接 CJK"模式作为下一天 row1 的备用锚点。
     premarker_re = re.compile(
-        r'(?:[\u4e00-\u9fff]{2,4}\s+.*?1\.\s+|(?:^|\s)1\.\s+(?:\d+\.\s+)*)' + _ACT_START
+        r'(?:[\u4e00-\u9fff]{2,4}\s+.*?1\.\s+|(?:^|\s)1\.\s+(?:\d+\.\s+)*'
+        r'|\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\s+)' + _ACT_START
     )
 
     days = []
@@ -464,12 +493,18 @@ def _extract_city_from_chunk(chunk):
     4. First known destination city in chunk
     5-6. Fallbacks without DEST_CITIES requirement
     """
-    # 1. Route destination: on travel days the destination is the main city
-    route_m = re.search(r'[\u4e00-\u9fff]{2,8}\s*→\s*([\u4e00-\u9fff]{2,8})', chunk)
+    # 1. Route destination: on travel days the destination is the main city.
+    # 上限 12 字以覆盖"马赛马拉国家保护区"(9)。当 dst 是某 DEST_CITY 的唯一前缀
+    # （如 chunk 中跨行截断为"马赛马拉国家保护"），亦可推断为该 DEST_CITY。
+    route_m = re.search(r'[\u4e00-\u9fff]{2,12}\s*→\s*([\u4e00-\u9fff]{2,12})', chunk)
     if route_m:
         dst = route_m.group(1)
         if dst in DEST_CITIES:
             return dst
+        if len(dst) >= 4:
+            cands = [c for c in DEST_CITIES if c != dst and c.startswith(dst)]
+            if len(cands) == 1:
+                return cands[0]
 
     # 2. year-month + city column pattern (shows destination, not departure)
     ym_m = re.search(r'20\d{2}年\d{1,2}月\s+([\u4e00-\u9fff]{2,8})', chunk)
@@ -500,6 +535,26 @@ def _extract_city_from_chunk(chunk):
             if after and _AIRPORT_NUM_RE.match(after):
                 continue
             return city
+
+    # 4b. Longest CJK run that is the unique prefix of a DEST_CITY.
+    # 适用于 PDF 表格里 city 名被空格/换行切碎的场景（"马赛马拉国家  保护区" /
+    # "马赛马拉国家\n区\n保护区"），完整 city 字符串不出现，但 ≥4 字前缀只对应
+    # 唯一一个 DEST_CITY 时仍可识别。
+    for cjk_m in re.finditer(r'[\u4e00-\u9fff]{4,}', chunk):
+        prefix = cjk_m.group(0)
+        if prefix in DEST_CITIES:
+            return prefix
+        cands = [c for c in DEST_CITIES if c != prefix and c.startswith(prefix)]
+        if len(cands) == 1:
+            return cands[0]
+
+    # 4c. Multi-word English city anywhere in chunk (e.g. "Maasai Mara"
+    # / "Ho Chi Minh" / "Kuala Lumpur"). 仅多词 en city 才允许任意位置匹配，
+    # 避免单词如 Nakuru / Nairobi 被景点描述内嵌（"Lake Nakuru National Park"）误匹配。
+    for en, zh in _EN_TO_ZH_CITY.items():
+        if ' ' in en and zh in DEST_CITIES:
+            if re.search(r'\b' + re.escape(en) + r'\b', chunk, re.IGNORECASE):
+                return zh
 
     # 5. Year-month city without DEST_CITIES requirement
     if ym_m:
@@ -615,19 +670,35 @@ def _extract_flight_schedule(text):
 
 
 def _extract_transport(chunk):
-    """Extract city→city routes from day chunk. Flight codes paired globally."""
-    # Cut off page-marker tail (flight schedule / overview pages end up here for the last day)
+    """Extract city→city routes from day chunk. Flight codes paired globally.
+
+    Bug D 修复：CJK 城市名上限放宽到 12，覆盖"马赛马拉国家保护区"(9) /
+        "马赛马拉国家野生动物保护区"(13) 这类景区类长城市名。
+        同时对 → 两侧的不完整 CJK 名（pdfplumber 跨行裂出的"内罗"），
+        如果它是某个 DEST_CITY 的前缀且 chunk 中存在该 DEST_CITY，则补全。
+    Bug G 修复：当 chunk 不含 → 箭头但概览表的"城市"列里出现 ≥2 个
+        DEST_CITY（陆路移动场景），按 chunk 顺序构造相邻 city→city 路径。
+    """
     page_cut = re.search(r'\|\s*P\d+\s*\|', chunk)
     if page_cut:
         chunk = chunk[:page_cut.start()]
 
     _en_city_set = {v.lower() for v in _EN_TO_ZH_CITY.keys()}
+
+    def _canonicalize(name: str) -> str:
+        if name in DEST_CITIES:
+            return name
+        candidates = [c for c in DEST_CITIES if c != name and c.startswith(name)]
+        if len(candidates) == 1:
+            # ≥4 字前缀认作唯一 dest 即便 chunk 中无完整字符串（PDF 跨行/空格切碎）；
+            # <4 字前缀仍要求 chunk 中存在完整 DEST_CITY，避免短前缀误匹配
+            if len(name) >= 4 or candidates[0] in chunk:
+                return candidates[0]
+        return name
+
     routes = []
-    # CJK 城市名上限 {1,8}：覆盖「富士河口湖」(5)、「富士吉田市」(5)、
-    # 「阿姆斯特丹」(5)、「马尔代夫」(4) 等多字城市；原 {1,4} 会把 5 字城市
-    # 截成后 3 字（富士河口湖 → 河口湖）。
     for m in re.finditer(
-        r'([\u4e00-\u9fff]{1,8}|[A-Za-z]{2,10})\s*→\s*([\u4e00-\u9fff]{1,8}|[A-Za-z]{2,10})',
+        r'([\u4e00-\u9fff]{1,12}|[A-Za-z]{2,15})\s*→\s*([\u4e00-\u9fff]{1,12}|[A-Za-z]{2,15})',
         chunk,
     ):
         src, dst = m.group(1).strip(), m.group(2).strip()
@@ -639,6 +710,10 @@ def _extract_transport(chunk):
             continue
         if re.match(r'^[A-Za-z]+$', dst) and dst.lower() not in _en_city_set:
             continue
+        if re.match(r'^[\u4e00-\u9fff]+$', src):
+            src = _canonicalize(src)
+        if re.match(r'^[\u4e00-\u9fff]+$', dst):
+            dst = _canonicalize(dst)
         src_zh = _EN_TO_ZH_CITY.get(src, src)
         dst_zh = _EN_TO_ZH_CITY.get(dst, dst)
         if src_zh == dst_zh:
@@ -646,27 +721,50 @@ def _extract_transport(chunk):
         route = f'{src}→{dst}'
         if route not in routes and len(src) >= 2 and len(dst) >= 2:
             routes.append(route)
+
+    if not routes:
+        seen = []
+        for line in chunk.split('\n'):
+            cols = re.split(r'\s{2,}', line.strip())
+            for col in cols:
+                col = col.strip()
+                if col in DEST_CITIES and col not in seen:
+                    seen.append(col)
+                elif col in _EN_TO_ZH_CITY:
+                    zh = _EN_TO_ZH_CITY[col]
+                    if zh in DEST_CITIES and zh not in seen:
+                        seen.append(zh)
+        if len(seen) >= 2:
+            for a, b in zip(seen, seen[1:]):
+                routes.append(f'{a}→{b}')
+
     return routes[:8]
 
 
 def _extract_accommodation(chunk):
-    """Extract first clean hotel name from chunk, preferring Chinese names."""
-    # Prefer Chinese hotel names — 「旅店」与「旅馆」同义，日本/港台
-    # 穷游 PDF 两种写法都出现。
+    """Extract first clean hotel name from chunk, preferring Chinese names.
+
+    Bug B 修复：穷游 PDF 里中文酒店名常含嵌入英文（"马赛马拉JW万豪酒店"），
+        旧的纯连续 CJK 正则会被英文切断、只匹配尾段"万豪酒店"。
+        新正则允许首字 CJK 后接 CJK/ASCII 字母混合，仍以酒店关键字结尾。
+    Bug F 修复：英文酒店名 fallback 在表格场景下经常出现"列 A  列 B  Hotel"
+        三列被合并为单行（"Lake Nakuru  Buraha zezoni hotel"，前段是景点列、
+        后段是住宿列），旧 30 字上限会整段丢弃。新规要求酒店名前是行首或
+        2+ 空格（≈列分隔符），从而只捕获住宿列内容。
+    """
     for m in re.finditer(
-        r'([\u4e00-\u9fff]{2,12}(?:酒店|宾馆|度假村|客栈|旅馆|旅店|民宿))',
+        r'([\u4e00-\u9fff][\u4e00-\u9fffA-Za-z]{1,15}(?:酒店|宾馆|度假村|客栈|旅馆|旅店|民宿))',
         chunk,
     ):
         name = m.group(1).strip()
-        if len(name) <= 20:
+        if len(name) <= 25:
             return name
-    # Fallback to English hotel names
     for m in re.finditer(
-        r'([A-Za-z\s]{4,30}(?:Hotel|Resort|Inn|Hostel|Lodge))',
-        chunk, re.IGNORECASE,
+        r'(?:^|\s{2,})([A-Za-z][A-Za-z0-9\-\' ]{2,40}(?:Hotel|Resort|Inn|Hostel|Lodge))',
+        chunk, re.IGNORECASE | re.MULTILINE,
     ):
         name = m.group(1).strip()
-        if len(name) <= 30:
+        if 4 <= len(name) <= 50:
             return name
     return None
 
@@ -1256,8 +1354,16 @@ def parse_text(text: str) -> dict:
                         if entry not in transport:
                             transport.append(entry)
 
-            if transport:
-                rt = re.search(r'([\u4e00-\u9fff]{2,6})→([\u4e00-\u9fff]{2,6})', transport[0])
+            # transport 覆盖 city：仅当 chunk 自带 → 箭头时启用 baseline 规则。
+            # Bug G 的 fallback（按"城市"列推断陆路 transport）只是为 UI 显示
+            # 路径线索，不应改写 chunk 推断的 city（chunk 推断已含 zh-form 优先
+            # 与跨行前缀补全等更精细的判定，pdfplumber arrow 也保证只在用户实际
+            # 移动时出现）。
+            if transport and '→' in chunk:
+                rt = re.search(
+                    r'([\u4e00-\u9fff]{2,12})→([\u4e00-\u9fff]{2,12})',
+                    transport[0],
+                )
                 if rt:
                     if seq_idx == len(day_chunks) - 1:
                         if rt.group(1) in DEST_CITIES:

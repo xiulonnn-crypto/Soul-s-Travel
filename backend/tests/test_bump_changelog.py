@@ -120,11 +120,15 @@ def test_compute_next_version_rules():
 
 
 def test_bump_strips_theme_and_commit_prefix(tmp_path, monkeypatch):
+    """端到端：[Unreleased] 同时含 Theme 行与 commit subject(带 CC 前缀)时，
+    bump 取 Theme 文字作为版本头摘要(Theme 优先),Theme 行本身从 released
+    block 中剥离,commit subject 与其前缀都不参与版本头。
+    """
     changelog = tmp_path / "CHANGELOG.md"
     changelog.write_text(
         "# Changelog\n\n"
         "## [Unreleased]\n\n"
-        "> Theme: 主题应折叠进标题或被删除，绝不能遗留到 released block\n\n"
+        "> Theme: 主题摘要应折叠进版本标题\n\n"
         "### Changed\n\n"
         "- **示例条目**：用于验证清洗\n\n"
         "## [0.1.0] - 2026-04-11\n\n"
@@ -148,11 +152,53 @@ def test_bump_strips_theme_and_commit_prefix(tmp_path, monkeypatch):
         "晋升后 released block 头顶绝不应遗留 `> Theme:` 行"
     )
 
-    assert "feat:" not in after, (
-        "CHANGELOG 版本标题不应保留 Conventional Commits 前缀"
+    # Theme 内容应作为版本头摘要(Theme 优先于 commit subject)
+    assert "主题摘要应折叠进版本标题" in after, (
+        "Theme 文字应折叠进版本标题作为一句话主题摘要"
     )
-    assert "PDF 导入健壮性提升与多模态录入" in after, "主题摘要正文应被保留"
 
+    # commit subject 与其前缀都不应进入版本头(因为 Theme 优先)
+    assert "feat:" not in after, "CC 前缀不应进入版本头"
+    assert "PDF 导入健壮性提升与多模态录入" not in after, (
+        "Theme 优先时 commit subject 不参与版本头摘要"
+    )
+
+    assert "## [Unreleased]\n\n## [0.1.0-" in after, (
+        "新 [Unreleased] 应紧接一个新版本标题"
+    )
+
+
+def test_bump_strips_commit_prefix_when_no_theme(tmp_path, monkeypatch):
+    """fallback 路径:[Unreleased] 不含 Theme 行时,bump 才用 commit subject,
+    其 Conventional Commits 前缀(feat:/fix: 等)必须被剥离,版本头摘要保持用户可读。
+    """
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(
+        "# Changelog\n\n"
+        "## [Unreleased]\n\n"
+        "### Changed\n\n"
+        "- **示例条目**：用于验证 commit prefix 清洗\n\n"
+        "## [0.1.0] - 2026-04-11\n\n"
+        "### Added\n\n"
+        "- **初版**：上线\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bump_module, "CHANGELOG_PATH", changelog)
+    monkeypatch.setattr(
+        bump_module,
+        "get_commit_summary",
+        lambda: "feat: PDF 导入健壮性提升与多模态录入",
+    )
+
+    result = bump_module.bump(explicit_version=None)
+    assert result is not None, "有内容时 bump() 应执行版本化"
+
+    after = changelog.read_text(encoding="utf-8")
+
+    assert "feat:" not in after, "fallback 到 commit subject 时,CC 前缀必须被剥离"
+    assert "PDF 导入健壮性提升与多模态录入" in after, (
+        "无 Theme 时,commit subject(去前缀后)应作为版本头摘要"
+    )
     assert "## [Unreleased]\n\n## [0.1.0-" in after, (
         "新 [Unreleased] 应紧接一个新版本标题"
     )

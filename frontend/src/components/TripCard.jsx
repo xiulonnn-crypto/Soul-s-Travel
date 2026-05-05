@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { EnvironmentOutlined } from '@ant-design/icons'
+import { formatTripDateRange } from '../utils/formatTripDateRange'
 import './TripCard.css'
 
 const THEMES = [
@@ -31,13 +32,7 @@ export default function TripCard({ trip, index = 0 }) {
   const score = trip.evaluation_score ?? null
 
   const year = new Date(trip.start_date).getFullYear()
-  const startMonth = new Date(trip.start_date).getMonth() + 1
-  const startDay = new Date(trip.start_date).getDate()
-  const endMonth = new Date(trip.end_date).getMonth() + 1
-  const endDay = new Date(trip.end_date).getDate()
-  const dateStr = startMonth === endMonth
-    ? `${startMonth}.${startDay}–${endDay}`
-    : `${startMonth}.${startDay}–${endMonth}.${endDay}`
+  const dateStr = formatTripDateRange(trip.start_date, trip.end_date)
 
   return (
     <div

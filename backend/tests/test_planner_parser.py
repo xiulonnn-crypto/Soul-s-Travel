@@ -127,8 +127,11 @@ def test_parses_uk_9day_full_shape():
     assert trip['end_date'] == f'{cur_year}-10-07'
 
     legs = result['legs']
-    assert len(legs) == 2, f'expected 2 legs (伦敦 → 爱丁堡), got {len(legs)}'
-    london, edinburgh = legs
+    # Day 9 (10.07) OCR 含"北京大兴国际机场"，按机场→城市映射归属"北京 leg"
+    # （回程落地）；与 Kenya Day 11 同语义。原测试假设 2 legs（回程并入爱丁堡）
+    # 已经废弃，新行为下回程落地国/城市单成 leg 更精确反映用户行程。
+    assert len(legs) == 3, f'expected 3 legs (伦敦 → 爱丁堡 → 北京), got {len(legs)}'
+    london, edinburgh, beijing = legs
 
     assert london['city'] == '伦敦'
     assert london['country'] == '英国'
@@ -139,8 +142,14 @@ def test_parses_uk_9day_full_shape():
     assert edinburgh['city'] == '爱丁堡'
     assert edinburgh['country'] == '英国'
     assert edinburgh['start_date'] == f'{cur_year}-10-03'
-    assert edinburgh['end_date'] == f'{cur_year}-10-07'
-    assert len(edinburgh['days']) == 5
+    assert edinburgh['end_date'] == f'{cur_year}-10-06'
+    assert len(edinburgh['days']) == 4
+
+    assert beijing['city'] == '北京'
+    assert beijing['country'] == '中国'
+    assert beijing['start_date'] == f'{cur_year}-10-07'
+    assert beijing['end_date'] == f'{cur_year}-10-07'
+    assert len(beijing['days']) == 1
 
     # 完整性审计：所有日子加起来应等于 9 天，覆盖 09.29 到 10.07
     total_days = sum(len(leg['days']) for leg in legs)
@@ -265,7 +274,8 @@ def test_context_year_overrides_current_year():
     assert result['trip']['end_date'] == '2024-10-07'
     # Per-leg dates must inherit the same year
     assert result['legs'][0]['start_date'] == '2024-09-29'
-    assert result['legs'][1]['end_date'] == '2024-10-07'
+    # 末段回程 leg（北京）的 end_date 即整段 end_date
+    assert result['legs'][-1]['end_date'] == '2024-10-07'
     # Per-day dates must inherit the same year (assert to leaf)
     all_days = [d for leg in result['legs'] for d in leg['days']]
     for day in all_days:

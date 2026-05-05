@@ -183,24 +183,79 @@ def _extract_dates(lines: List[str], day_blocks, context_year: Optional[int] = N
 # ---------------------------------------------------------------------------
 
 
+# 机场名 → 城市映射。OCR 出来的 PiTravel 行程图上，常见 day 内只列机场+酒店，
+# 没有独立城市字面量（如 5/01 = 北京大兴+哈马德+乔莫·肯雅塔+酒店）。这张表把
+# "<城市><限定词>国际机场" 归到对应城市，使 _infer_city 在没有 DEST_CITY /
+# 英文地名命中时仍能给出正确 city。机场名故意写得宽（含"国际机场"全字 +
+# 简写），让 substring 命中尽量稳定。新增机场只需追加这张表。
+_AIRPORT_TO_CITY: dict = {
+    # 中国
+    '北京大兴国际机场': '北京', '大兴国际机场': '北京', '大兴机场': '北京',
+    '北京首都国际机场': '北京', '首都国际机场': '北京',
+    '上海浦东国际机场': '上海', '浦东国际机场': '上海',
+    '上海虹桥国际机场': '上海', '虹桥国际机场': '上海',
+    '广州白云国际机场': '广州', '白云国际机场': '广州',
+    '深圳宝安国际机场': '深圳', '宝安国际机场': '深圳',
+    '成都天府国际机场': '成都', '成都天府机场': '成都', '天府国际机场': '成都',
+    '成都双流国际机场': '成都', '双流国际机场': '成都',
+    '香港国际机场': '香港',
+    # 卡塔尔
+    '哈马德国际机场': '多哈',
+    # 肯尼亚
+    '乔莫·肯雅塔国际机场': '内罗毕', '乔莫肯雅塔国际机场': '内罗毕',
+    '威尔逊机场': '内罗毕',
+    # 马来西亚
+    '吉隆坡国际机场': '吉隆坡',
+    # 越南
+    '西贡新山一国际机场': '胡志明市', '新山一国际机场': '胡志明市',
+    # 日本
+    '成田国际机场': '东京', '羽田国际机场': '东京', '羽田机场': '东京',
+    '关西国际机场': '大阪',
+    # 韩国
+    '仁川国际机场': '首尔', '金浦国际机场': '首尔',
+    # 泰国
+    '素万那普国际机场': '曼谷', '廊曼国际机场': '曼谷',
+    # 新加坡
+    '樟宜国际机场': '新加坡', '樟宜机场': '新加坡',
+    # 英国
+    '希思罗国际机场': '伦敦', '希思罗机场': '伦敦', '盖特威克机场': '伦敦',
+    '爱丁堡机场': '爱丁堡',
+}
+
+
 # 所有能识别的"可读出的城市字面量"。既覆盖中文 DEST_CITIES，也覆盖英文地名（OCR
 # 常见 Edinburgh / London / Beijing），翻译成中文后用同一套 COUNTRY_MAP。
 # 用 "（中文 key, 判定 substring 列表）" 让同一城市的多种写法命中。
 def _infer_city(day_lines: List[str], prev_city: Optional[str]) -> str:
-    """取最后一个出现的 DEST_CITY（destination > origin 启发式）。
+    """取 day 内最后一个出现位置的 city（destination > origin 启发式）。
 
-    - 直接扫中文 DEST_CITIES
-    - 同时扫 _EN_TO_ZH_CITY 的英文 key，命中则返回对应中文
+    优先级（同 line 内取 char 位置最靠后的命中）：
+    - 中文 DEST_CITIES 直接 substring
+    - _EN_TO_ZH_CITY 的英文地名（要求独立词，避免 'London Bridge'）
+    - _AIRPORT_TO_CITY 机场名（PiTravel 海报常见每天只列机场+酒店，没有独立
+      城市字面量；机场命中作为兜底）
+
+    "char 位置最靠后" 是关键：OCR 行内 "哈马德国际机场 北京大兴国际机场" 这种
+    "中转地 落地地" 排版下，落地地在右侧、char 位置更靠后 → last_hit = 落地。
+    若按 dict 遍历顺序取，会被 dict 字面量的定义顺序污染。
     """
     last_hit = None
     for line in day_lines:
+        line_hits = []  # (char_pos, city_zh)
         for city in DEST_CITIES:
-            if city in line:
-                last_hit = city
+            pos = line.rfind(city)
+            if pos >= 0:
+                line_hits.append((pos, city))
         for en, zh in _EN_TO_ZH_CITY.items():
-            # 英文地名要求是独立词，避免 'London Bridge' 误中时顺便也是 London
-            if re.search(r'\b' + re.escape(en) + r'\b', line):
-                last_hit = zh
+            for m in re.finditer(r'\b' + re.escape(en) + r'\b', line):
+                line_hits.append((m.start(), zh))
+        for airport, city in _AIRPORT_TO_CITY.items():
+            pos = line.rfind(airport)
+            if pos >= 0:
+                line_hits.append((pos, city))
+        if line_hits:
+            line_hits.sort(key=lambda x: x[0])
+            last_hit = line_hits[-1][1]
     if last_hit:
         return last_hit
     return prev_city or '[待确认]'

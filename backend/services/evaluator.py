@@ -40,18 +40,40 @@ def _clamp(v, lo=0, hi=100):
 
 _REFERENCE_PER_PERSON_BUDGET = 35000  # 人均年旅行预算基准 (CNY)
 
-# 目的地消费升级锚点（约泰国/土耳其中档水平），用于「穷国富游 / 富国穷游」系数
-_DEST_COST_ANCHOR = 800
+# 目的地消费升级锚点 — 两个维度各自独立，避免上调 daily 影响 hotel 参考
+_DAILY_COST_ANCHOR = 800   # 中档日均消费水平（住宿+餐饮+本地交通+门票）
+_HOTEL_PRICE_ANCHOR = 600  # 中档 4 星均价水平
 
 
-def _destination_upgrade_coefficient(base_daily_cost):
-    """穷国富游系数：低成本目的地旅客实际消费相对基准偏移更大。"""
+def _hotel_dest_coefficient(base_hotel_price):
+    """住宿维度的「穷地富游/富地穷游」系数 — 较陡，用 hotel anchor。
+
+    用 hotel base 而非 daily base 作为穷富判断 — 否则上调 daily 会让
+    城市从「穷地」变「准 anchor 地」，hotel 系数下降，破坏 hotel 修复。
+
+    住宿是离散品（5星 vs 民宿差异巨大），穷地的旅客容易显著升级，
+    富地的旅客则更倾向控制住宿等级。所以住宿系数对 anchor 偏离的响应更激进。
+    """
+    if base_hotel_price <= 0:
+        return 1.0
+    ratio = base_hotel_price / _HOTEL_PRICE_ANCHOR
+    if ratio >= 1.0:
+        return max(0.75, 1.0 - (ratio - 1.0) * 0.15)
+    return min(1.6, 1.0 + (1.0 - ratio) * 0.8)
+
+
+def _daily_dest_coefficient(base_daily_cost):
+    """日均消费维度的「穷地富游/富地穷游」系数 — 较缓，用 daily anchor。
+
+    日均消费包含本地交通、门票、机场税、签证费等不受目的地穷富影响的项目，
+    所以系数应明显比住宿温和，避免被一个粗系数同时放大/压缩所有支出类别。
+    """
     if base_daily_cost <= 0:
         return 1.0
-    ratio = base_daily_cost / _DEST_COST_ANCHOR
+    ratio = base_daily_cost / _DAILY_COST_ANCHOR
     if ratio >= 1.0:
-        return max(0.85, 1.0 - (ratio - 1.0) * 0.1)
-    return min(1.5, 1.0 + (1.0 - ratio) * 0.6)
+        return max(0.92, 1.0 - (ratio - 1.0) * 0.05)
+    return min(1.25, 1.0 + (1.0 - ratio) * 0.3)
 
 
 def _compute_tier_multiplier(profile, traveler_count):
@@ -160,15 +182,18 @@ def _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs):
             continue
         months = _extract_months_from_leg(leg)
         season_mult, season_label = _compute_season_multiplier(bm, months)
-        dest_coeff = _destination_upgrade_coefficient(bm["avg_daily_cost_cny"])
-        combined = tier_mult * season_mult * dest_coeff
+        hotel_coeff = _hotel_dest_coefficient(bm.get("avg_hotel_price_cny", 500))
+        daily_coeff = _daily_dest_coefficient(bm["avg_daily_cost_cny"])
+        hotel_combined = tier_mult * season_mult * hotel_coeff
+        daily_combined = tier_mult * season_mult * daily_coeff
 
         adj = dict(bm)
-        adj["avg_daily_cost_cny"] = round(bm["avg_daily_cost_cny"] * combined)
-        adj["avg_hotel_price_cny"] = round(bm.get("avg_hotel_price_cny", 500) * combined)
+        adj["avg_daily_cost_cny"] = round(bm["avg_daily_cost_cny"] * daily_combined)
+        adj["avg_hotel_price_cny"] = round(bm.get("avg_hotel_price_cny", 500) * hotel_combined)
         adj["_season_label"] = season_label
         adj["_season_multiplier"] = season_mult
-        adj["_destination_upgrade_coefficient"] = round(dest_coeff, 3)
+        adj["_hotel_dest_coefficient"] = round(hotel_coeff, 3)
+        adj["_daily_dest_coefficient"] = round(daily_coeff, 3)
         adj["_original_daily_cost"] = bm["avg_daily_cost_cny"]
         adj["_original_hotel_price"] = bm.get("avg_hotel_price_cny", 500)
         adjusted[city] = adj
@@ -271,11 +296,133 @@ def _count_transit_days(days):
     return sum(1 for d in days if _is_transit_day(d))
 
 
-def _effective_days(num_days, transit_days):
-    """有效游览人日：跨城日按 0.5 天计。"""
+def _is_non_sightseeing_leg(leg):
+    """Leg 是否「非游览」：完全没有游览证据的 leg（中转 / 起讫点）。
+
+    判定规则（必须同时满足）：
+      1. 所有 days 都没有 activities（无任何安排的景点 / 活动），且
+      2. 没有任何 day 是「非中转的实质性停留」——
+         即不存在 (该 day 不是 transit_day) 且 (该 day 有 accommodation) 的情况
+
+    第 2 条用于区分「文莱 5 小时中转（transit_day + 临时填了酒店字段）」
+    与「胡志明度假 8 晚（无安排景点但每天住酒店休闲）」——前者是非游览，
+    后者是度假型 leg 不应被排除。
+
+    用于把「文莱 5 小时中转」「北京返程终点站」这类无任何游览证据的 leg
+    从市场基准 / 覆盖率分母 / 城市评价列表中排除，避免拉低真实游览城市的评分。
+    """
+    days = leg.get("days", [])
+    if not days:
+        return True
+    for day in days:
+        if day.get("activities"):
+            return False
+    for day in days:
+        if not _is_transit_day(day) and day.get("accommodation"):
+            return False
+    return True
+
+
+_CHINESE_CHAR_RE = re.compile(r'[\u4e00-\u9fa5]')
+
+
+def _chinese_one_char_typo(spot, activity):
+    """中文景点名等长一字之差容错（处理 PDF/OCR 替换错字，如「白金汉宫」vs「白金汉官」）。
+
+    判定条件（必须同时满足）：
+      1. 双方长度相等且 >= 3（避免 2 字短词「古城」/「新城」误匹配）
+      2. 双方都含中文字符（避免误启用在纯英文景点名上）
+      3. 仅有 1 个位置的字符不同
+    """
+    if not spot or not activity:
+        return False
+    if len(spot) != len(activity) or len(spot) < 3:
+        return False
+    if not (_CHINESE_CHAR_RE.search(spot) and _CHINESE_CHAR_RE.search(activity)):
+        return False
+    diff = sum(1 for a, b in zip(spot, activity) if a != b)
+    return diff == 1
+
+
+def _spot_match(spot, activity):
+    """景点名匹配：双向子串包含 + 中文等长一字差容错。"""
+    if not isinstance(spot, str) or not isinstance(activity, str):
+        return False
+    if not spot or not activity:
+        return False
+    if spot in activity or activity in spot:
+        return True
+    return _chinese_one_char_typo(spot, activity)
+
+
+def _split_must_see_aliases(item):
+    """把 must_see 项展开为 [规范名, 别名1, 别名2, ...]。
+
+    must_see 字段允许用 `|` 在单条字符串内声明同一景点的多个常见译名，例如
+    "广安里大桥|广安大桥"（同一座桥的两种中文译法）。第一段为规范展示名。
+
+    选择数据层显式声明而非纯字符串相似度算法的原因：长度差 1 的字符插入在
+    `广安大桥/广安里大桥` 与 `白金汉宫/白金汉皇宫` 上字符串等价（均为 1 字
+    插入），仅靠字符串相似度无法区分"同一物体的不同译名"与"不同物体的相似
+    名字"。
+    """
+    if not isinstance(item, str):
+        return []
+    parts = [p.strip() for p in item.split("|") if p.strip()]
+    return parts
+
+
+def _spot_match_any(names, activity):
+    """任一别名命中即算覆盖（用于 must_see 含 `|` 别名声明的项）。"""
+    return any(_spot_match(n, activity) for n in names)
+
+
+def _is_off_city_day(day, leg_city, must_see):
+    """day 是否为「基地式游览的出城日」：未游 leg 城市必去清单且活动名不含 leg 城市。
+
+    判定条件（必须同时满足）：
+      1. 不是 transit_day（跨城日已有 0.5 折减，互斥）
+      2. activities 非空（空 day 不算 off-city，避免误判休息日）
+      3. activities 中没有任何一个：
+         a) 匹配 leg 城市必去清单（双向子串或 OCR 容错）
+         b) 包含 leg 城市名作为子串（如「爱丁堡王子街」）
+
+    用于「以 X 为基地玩 Y/Z」型多日游识别（如以爱丁堡为基地玩苏格兰高地、
+    以京都为基地玩奈良）。这类 day 把 leg city 的覆盖率分母拉大但分子不增，
+    需要从 effective_days 中折减以反映用户实际只在 leg city 内消耗了少数日子。
+    """
+    if _is_transit_day(day):
+        return False
+    activities = day.get("activities", [])
+    if not activities:
+        return False
+    must_see_list = must_see or []
+    for act in activities:
+        if not isinstance(act, str):
+            continue
+        for spot in must_see_list:
+            names = _split_must_see_aliases(spot)
+            if names and _spot_match_any(names, act):
+                return False
+        if leg_city and leg_city in act:
+            return False
+    return True
+
+
+def _count_off_city_days(days, leg_city, must_see):
+    return sum(1 for d in days if _is_off_city_day(d, leg_city, must_see))
+
+
+def _effective_days(num_days, transit_days, off_city_days=0):
+    """有效游览人日：跨城日按 0.5 天计；off-city 日（基地式游览出城）按 0.7 折减。
+
+    每个 off-city day 扣 0.7：保留 0.3 的下限承认用户至少在该城落地睡过，
+    但不让分母被外地游览日完全占满。transit_days 与 off_city_days 互斥
+    （_is_off_city_day 已优先 transit_day 判定）。
+    """
     if num_days <= 0:
         return 0.1
-    return max(0.1, num_days - transit_days * 0.5)
+    return max(0.1, num_days - transit_days * 0.5 - off_city_days * 0.7)
 
 
 def _stay_ratio(effective_days, typical_stay_days):
@@ -324,31 +471,50 @@ def _compute_cost_metrics(trip, legs, expenses, benchmarks):
 
     per_person_per_day = ground_expense / traveler_count / total_days if total_days else 0
 
-    # 用城市基准加权平均作为参考
-    market_avg = 0
-    city_count = 0
+    # 仅游览 leg 按 effective_days 加权计算市场参考
+    # （中转 / 起讫点的城市基准不参与，否则会把伦敦+爱丁堡这类高消费目的地的
+    #  人均日花费基准被文莱/北京等中转地拉低，错判用户消费偏高）
+    weighted_market = 0.0
+    total_w = 0.0
     for leg in legs:
+        if _is_non_sightseeing_leg(leg):
+            continue
         city = leg.get("city", "")
         bm = benchmarks.get(city)
-        if bm:
-            market_avg += bm["avg_daily_cost_cny"]
-            city_count += 1
-    market_avg = market_avg / city_count if city_count else 1000
+        if not bm:
+            continue
+        days = leg.get("days", [])
+        num_d = max(len(days), 1)
+        transit_d = _count_transit_days(days)
+        eff_d = _effective_days(num_d, transit_d)
+        weighted_market += bm["avg_daily_cost_cny"] * eff_d
+        total_w += eff_d
+    market_avg = weighted_market / total_w if total_w > 0 else 1000
 
     if market_avg <= 0:
         ratio = 1.0
     else:
         ratio = per_person_per_day / market_avg
 
-    # ratio < 0.7 → 100, ratio == 1.0 → 80, ratio > 1.5 → 50
+    # 「持平」plateau 与文案档位 (savings_pct ∈ [-10, 10] → "基本持平") 对齐
+    # ratio ≤ 0.7   → 100        (节省 30%+，"花费控制出色")
+    # 0.7-0.9       → 100→90     (节省 10-30%)
+    # 0.9-1.1       → 90 plateau (持平 ±10%，"基本持平、花费合理")
+    # 1.1-1.5       → 90→60     (超支 10-50%)
+    # 1.5-2.0       → 60→45
+    # > 2.0         → 45→30 floor
     if ratio <= 0.7:
         score = 100
-    elif ratio <= 1.0:
-        score = 100 - (ratio - 0.7) / 0.3 * 20
+    elif ratio <= 0.9:
+        score = 100 - (ratio - 0.7) / 0.2 * 10
+    elif ratio <= 1.1:
+        score = 90
     elif ratio <= 1.5:
-        score = 80 - (ratio - 1.0) / 0.5 * 30
+        score = 90 - (ratio - 1.1) / 0.4 * 30
+    elif ratio <= 2.0:
+        score = 60 - (ratio - 1.5) * 30
     else:
-        score = max(30, 50 - (ratio - 1.5) * 20)
+        score = max(30, 45 - (ratio - 2.0) * 20)
 
     savings_pct = round((1 - ratio) * 100)
 
@@ -457,16 +623,29 @@ def _day_requires_accommodation(day):
 
 
 def _compute_accommodation_metrics(legs, expenses, benchmarks, traveler_count=1):
-    """住宿品质评分"""
+    """住宿品质评分。
+
+    非游览 leg（中转 / 起讫点）整 leg 跳过 coverage 计算——这类 leg 的 days
+    不计入「应有住宿」的分母，也不计入「实际有住宿」的分子。例如返程当天到达
+    北京就回家了，本就不该住宿，也不该被算成「漏填住宿」拉低评分。
+
+    market_avg 按用户实际住宿夜数加权，避免把没住过的中转 / 终点站城市基准
+    计入参考价、误判用户酒店选择是否合理。
+    """
     has_accommodation = 0
     required_days = 0
     hotel_names = []
+    nights_by_city = {}
 
     for leg in legs:
+        if _is_non_sightseeing_leg(leg):
+            continue
+        city = leg.get("city", "")
         for day in leg.get("days", []):
             if day.get("accommodation"):
                 has_accommodation += 1
                 hotel_names.append(day["accommodation"])
+                nights_by_city[city] = nights_by_city.get(city, 0) + 1
             if _day_requires_accommodation(day):
                 required_days += 1
 
@@ -476,15 +655,19 @@ def _compute_accommodation_metrics(legs, expenses, benchmarks, traveler_count=1)
     nights = max(has_accommodation, 1)
     avg_nightly = hotel_expense / nights / max(traveler_count, 1) if hotel_expense else 0
 
-    # 对比基准
-    market_hotel_avg = 0
-    city_count = 0
-    for leg in legs:
-        bm = benchmarks.get(leg.get("city", ""))
-        if bm:
-            market_hotel_avg += bm.get("avg_hotel_price_cny", 500)
-            city_count += 1
-    market_hotel_avg = market_hotel_avg / city_count if city_count else 500
+    # 按住宿夜数加权计算市场基准（无住宿城市自动排除，避免拉低参考价）
+    weighted_market = 0.0
+    total_nights_w = 0
+    for city, n in nights_by_city.items():
+        bm = benchmarks.get(city)
+        if not bm:
+            continue
+        weighted_market += bm.get("avg_hotel_price_cny", 500) * n
+        total_nights_w += n
+    if total_nights_w > 0:
+        market_hotel_avg = weighted_market / total_nights_w
+    else:
+        market_hotel_avg = 500
 
     # 覆盖率分 (有住宿记录) 60分权重 + 价格合理性 40分权重
     coverage_score = min(100, coverage * 100)
@@ -510,10 +693,52 @@ def _compute_accommodation_metrics(legs, expenses, benchmarks, traveler_count=1)
     }
 
 
+def _detect_unrecorded_intercity_moves(legs):
+    """检测「跨 leg 切换但前后两日均未填跨城交通」的位置。
+
+    将所有 day 按 (date, day_number) 排成全局时间序，找出 leg city 发生变化的相邻
+    pair。若该 pair 中任一 day 已被 _is_transit_day 识别（说明用户在前一日或当日的
+    transport 字段中记录了跨城交通），就视为已覆盖；否则计入返回列表。
+
+    返回 [{from, to, day_number}, ...]，仅供 text/tag 提示，不进入分母不影响评分——
+    避免与「以 X 为基地玩 Y」的日返模式（评分应高）产生冲突。
+    """
+    timeline = []
+    for leg in legs:
+        city = leg.get("city", "")
+        for day in leg.get("days", []):
+            timeline.append((day.get("date") or "", day.get("day_number") or 0, city, day))
+    timeline.sort(key=lambda x: (x[0], x[1]))
+
+    moves = []
+    for i in range(1, len(timeline)):
+        _, _, prev_city, prev_day = timeline[i - 1]
+        _, _, curr_city, curr_day = timeline[i]
+        if not prev_city or not curr_city or prev_city == curr_city:
+            continue
+        if _is_transit_day(prev_day) or _is_transit_day(curr_day):
+            continue
+        moves.append({
+            "from": prev_city,
+            "to": curr_city,
+            "day_number": curr_day.get("day_number"),
+        })
+    return moves
+
+
 def _compute_transport_metrics(legs):
-    """交通规划评分"""
-    has_transport = 0
-    total_days = 0
+    """交通规划评分。
+
+    coverage 只考察「跨城日是否记录了交通方式」——城内日的地铁、打车记录习惯
+    与「交通规划质量」无关，把它们计入分母会要求用户每天都填一条 transport，
+    令评分被记录习惯而非规划本身决定。
+
+    `unrecorded_intercity_moves` 是一份纯提示性的副指标：当 leg 发生切换但前后
+    两日的 transport 都不含跨城内容时，列出这些位置。它仅用于 text/tag 文案，
+    **不进入 score 计算**——避免与「以基地城市玩日返」的合理玩法冲突。
+    """
+    has_transport_transit = 0
+    transit_total = 0
     cities_in_order = []
 
     for leg in legs:
@@ -521,10 +746,10 @@ def _compute_transport_metrics(legs):
         if city and (not cities_in_order or cities_in_order[-1] != city):
             cities_in_order.append(city)
         for day in leg.get("days", []):
-            total_days += 1
-            transport = day.get("transport", [])
-            if transport:
-                has_transport += 1
+            if _is_transit_day(day):
+                transit_total += 1
+                if day.get("transport"):
+                    has_transport_transit += 1
 
     # 回头路检测
     has_backtrack = False
@@ -534,7 +759,12 @@ def _compute_transport_metrics(legs):
                 has_backtrack = True
                 break
 
-    coverage = has_transport / total_days if total_days else 0
+    # leg 间至少有 (城市数 - 1) 次跨城；若用户根本没填 transport 而被识别为 0,
+    # 用 leg 数兜底，让"两城但未记录任何交通"仍能得到合理的 0% 提示。
+    inferred_transit = max(len(cities_in_order) - 1, 0)
+    transit_total = max(transit_total, inferred_transit)
+
+    coverage = has_transport_transit / transit_total if transit_total > 0 else 1.0
     base_score = 70 + coverage * 25
     if has_backtrack:
         base_score -= 15
@@ -544,11 +774,17 @@ def _compute_transport_metrics(legs):
         "coverage": round(coverage * 100),
         "has_backtrack": has_backtrack,
         "city_route": " → ".join(cities_in_order) if cities_in_order else "",
+        "transit_total": transit_total,
+        "unrecorded_intercity_moves": _detect_unrecorded_intercity_moves(legs),
     }
 
 
 def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
     """景点覆盖评分：按停留人日相对典型停留调整期望，跨城日折减有效天；城市间按有效天加权。
+
+    非游览 leg（中转 / 起讫点，无任何 activity 且无历史去过）不参与加权计算，
+    避免把一个本来就不打算游玩的城市的 0% 覆盖率拉低整体得分。
+    这类 leg 仍出现在 cities 列表中（带 non_sightseeing=True 标记）。
 
     past_visited: {city: [activity, ...]} — 历史行程已去景点，合并入 visited 集合，
                   使历史去过的必去点不再计入 missed。
@@ -567,8 +803,13 @@ def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
         num_days = max(len(days), 1)
         typical = bm.get("typical_stay_days", 3) if bm else 3
         transit_days = _count_transit_days(days)
-        effective_days = _effective_days(num_days, transit_days)
+        off_city_days = _count_off_city_days(days, city, must_see)
+        effective_days = _effective_days(num_days, transit_days, off_city_days)
         ratio = _stay_ratio(effective_days, typical)
+
+        is_non_sightseeing = (
+            _is_non_sightseeing_leg(leg) and not past_visited.get(city)
+        )
 
         visited = set()
         for day in days:
@@ -579,11 +820,15 @@ def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
         covered = []
         missed = []
         for spot in must_see:
-            found = any(spot in v or v in spot for v in visited)
+            names = _split_must_see_aliases(spot)
+            if not names:
+                continue
+            canonical = names[0]
+            found = any(_spot_match_any(names, v) for v in visited)
             if found:
-                covered.append(spot)
+                covered.append(canonical)
             else:
-                missed.append(spot)
+                missed.append(canonical)
 
         if must_see:
             raw_ratio = len(covered) / len(must_see)
@@ -594,7 +839,8 @@ def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
             raw_pct = 100.0
             adj_pct = 100.0
 
-        w = effective_days
+        # 非游览 leg 不参与加权（仍保留在 city_results 中作展示）
+        w = 0.0 if is_non_sightseeing else effective_days
         weighted_cov += adj_pct * w
         weighted_raw += raw_pct * w
         total_weight += w
@@ -602,7 +848,7 @@ def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
         city_results.append({
             "city": city,
             "covered": covered,
-            "missed": missed,
+            "missed": [] if is_non_sightseeing else missed,
             "coverage_pct": round(adj_pct),
             "raw_coverage_pct": round(raw_pct),
             "total_visited": len(visited),
@@ -610,6 +856,7 @@ def _compute_attractions_metrics(legs, benchmarks, past_visited=None):
             "typical_stay": typical,
             "stay_ratio": round(ratio, 2),
             "transit_days": transit_days,
+            "non_sightseeing": is_non_sightseeing,
         })
 
     if not city_results:
@@ -645,10 +892,30 @@ def _evaluate_city(leg, expenses, benchmarks, past_visited=None):
     city = leg.get("city", "")
     bm = benchmarks.get(city, {})
     days = leg.get("days", [])
+    num_days = max(len(days), 1)
+
+    # 非游览 leg（中转 / 起讫点）走简化路径：不评景点维度，仅作信息展示
+    if _is_non_sightseeing_leg(leg) and not past_visited.get(city):
+        return {
+            "city": city,
+            "country": bm.get("country", leg.get("country", "")),
+            "days": num_days,
+            "score": 75,
+            "text": f"{city}本次为过境/中转，未安排游览。",
+            "tags": [{"type": "info", "text": "过境/中转"}],
+            "missed_spots": [],
+            "metrics": {
+                "daily_cost": 0,
+                "market_daily": bm.get("avg_daily_cost_cny", 1000),
+                "spot_coverage": None,
+                "spot_coverage_raw": None,
+                "avg_activities": 0,
+            },
+            "non_sightseeing": True,
+        }
 
     leg_expenses = [e for e in expenses if e.get("leg_id") == leg.get("id")]
     total_cost = sum(e["amount"] for e in leg_expenses)
-    num_days = max(len(days), 1)
     traveler_count = 1  # leg 级别无人数信息, 后面由外层补正
 
     activities_count = sum(len(d.get("activities", [])) for d in days)
@@ -663,15 +930,25 @@ def _evaluate_city(leg, expenses, benchmarks, past_visited=None):
     must_see = bm.get("must_see", [])
     typical_stay = bm.get("typical_stay_days", 3)
     transit_days = _count_transit_days(days)
-    effective_days = _effective_days(num_days, transit_days)
+    off_city_days = _count_off_city_days(days, city, must_see)
+    effective_days = _effective_days(num_days, transit_days, off_city_days)
     stay_ratio_val = _stay_ratio(effective_days, typical_stay)
 
     visited = set()
     for d in days:
         visited.update(d.get("activities", []))
     visited.update(past_visited.get(city, []))
-    covered = [s for s in must_see if any(s in v or v in s for v in visited)]
-    missed = [s for s in must_see if s not in covered]
+    covered = []
+    missed = []
+    for s in must_see:
+        names = _split_must_see_aliases(s)
+        if not names:
+            continue
+        canonical = names[0]
+        if any(_spot_match_any(names, v) for v in visited):
+            covered.append(canonical)
+        else:
+            missed.append(canonical)
     if must_see:
         raw_ratio = len(covered) / len(must_see)
         spot_pct_raw = raw_ratio * 100
@@ -956,7 +1233,15 @@ def _generate_transport_text(m):
     elif coverage < 50:
         parts.append(f"目前仅 {coverage}% 的天数有出行方式记录，建议补充完整以获得更准确的评分")
 
-    return "，".join(parts) + "。"
+    base = "，".join(parts) + "。"
+
+    moves = m.get("unrecorded_intercity_moves") or []
+    if moves:
+        sample = "、".join(
+            f"Day{mv['day_number']} {mv['from']}→{mv['to']}" for mv in moves[:3]
+        )
+        base += f"提示: {sample} 等跨城切换暂未记录交通方式，可补充以让行程档案更完整（不影响评分）。"
+    return base
 
 
 def _generate_transport_tags(m):
@@ -971,6 +1256,10 @@ def _generate_transport_tags(m):
         tags.append({"type": "info", "text": "暂无交通记录"})
     elif coverage < 50:
         tags.append({"type": "warning", "text": f"交通覆盖 {coverage}%"})
+
+    moves = m.get("unrecorded_intercity_moves") or []
+    if moves:
+        tags.append({"type": "info", "text": f"{len(moves)} 处跨城未记录"})
 
     return tags
 
@@ -1151,6 +1440,8 @@ def generate_evaluation(trip_dict, profile=None, past_visited=None):
 
     cities = []
     for leg in legs:
+        if _is_non_sightseeing_leg(leg):
+            continue
         city_eval = _evaluate_city(leg, expenses, benchmarks, past_visited=past_visited)
         cities.append(city_eval)
 
