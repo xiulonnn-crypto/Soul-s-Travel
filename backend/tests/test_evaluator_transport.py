@@ -171,6 +171,29 @@ class TestTransportMetricsScore:
         assert m["has_backtrack"] is False, m
         assert m["city_route"] == "东京 → 京都 → 奈良 → 大阪", m
 
+    def test_multi_city_all_charter_without_arrow_or_flight_still_full_coverage(self):
+        """多城行程仅写「包车」、无航班/箭头：仍应视为已记录跨城 mobility，不得按 0% 扣到 70。"""
+        legs = _make_legs([
+            ("腾冲", [["包车"], ["包车"]]),
+            ("瑞丽", [["包车"], ["包车"]]),
+            ("芒市", [["包车"]]),
+        ])
+        m = _compute_transport_metrics(legs)
+        assert m["transit_total"] == 2, m
+        assert m["coverage"] == 100, m
+        assert m["score"] == 95, m
+        assert m["has_backtrack"] is False, m
+
+    def test_charter_supplement_does_not_double_count_strict_transit_days(self):
+        """已按大交通计入的跨城日不应因同条里带「包车」再套补充逻辑（分母不变）。"""
+        legs = _make_legs([
+            ("A", [["腾冲→瑞丽 包车"]]),
+            ("B", [["高铁至芒市"]]),
+        ])
+        m = _compute_transport_metrics(legs)
+        assert m["coverage"] == 100, m
+        assert m["score"] == 95, m
+
 
 # ---------------------------------------------------------------------------
 # _generate_transport_text — 文字必须解释评分驱动因素

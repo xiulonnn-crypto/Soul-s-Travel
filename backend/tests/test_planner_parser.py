@@ -463,6 +463,28 @@ def test_flight_airports_paired_in_transport():
 # ---------------------------------------------------------------------------
 
 
+def test_non_last_hotel_line_preserved_as_activity():
+    """当某天有两个含酒店关键字的行时，最后一个作为 accommodation，其余进 activities。
+
+    真实场景：蒙古行程 Day 1 在 OCR 中出现「蓝天酒店（蓝天塔）」（地标性景点）后接
+    「ChinggisKhaanHotel」（实际住宿）。前者应进 activities，后者为 accommodation。
+    Literal OCR snippet from /Users/soul/Downloads/IMG_4917.png.
+    """
+    ocr = (
+        "06.19/周四\n"
+        "蓝天酒店（蓝天塔）\n"
+        "ChinggisKhaanHotel\n"
+    )
+    result = parse_planner_text(ocr, context_year=2025)
+    day1 = result['legs'][0]['days'][0]
+    assert '蓝天酒店（蓝天塔）' in day1['activities'], (
+        f"蓝天酒店（蓝天塔）应在 activities 内，实际 activities={day1['activities']}"
+    )
+    assert day1['accommodation'] == 'ChinggisKhaanHotel', (
+        f"accommodation 应为最后一个酒店行，实际={day1['accommodation']}"
+    )
+
+
 def test_day_dict_shape_matches_parse_text():
     """Every day entry must carry the exact keys parse_text() emits — the
     frontend TripForm / TripEditor.applyAction depend on this shape. A missing

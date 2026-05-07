@@ -169,9 +169,18 @@ def _resolve_city_benchmark(raw_benchmarks, city, country=""):
     return None
 
 
-def _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs):
-    """构建经消费层级 + 季节调整后的基准数据副本。"""
+def _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs, traveler_count=1):
+    """构建经消费层级 + 季节调整后的基准数据副本。
+
+    日均参考价（avg_daily_cost_cny）拆分为住宿和非住宿两部分，分别用
+    hotel_coeff（与住宿参考逻辑一致，更激进）和 daily_coeff（温和）调整，
+    使日均参考与住宿参考保持逻辑对齐。
+
+    traveler_count: 行程出行人数，用于将 avg_hotel_price_cny（间价）
+    折算为人均住宿基础成本，再合并非住宿部分得到人均日均参考价。
+    """
     adjusted = {}
+    occupancy = max(traveler_count, 1)
     for leg in legs:
         city = leg.get("city", "")
         if city in adjusted:
@@ -182,20 +191,31 @@ def _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs):
             continue
         months = _extract_months_from_leg(leg)
         season_mult, season_label = _compute_season_multiplier(bm, months)
-        hotel_coeff = _hotel_dest_coefficient(bm.get("avg_hotel_price_cny", 500))
-        daily_coeff = _daily_dest_coefficient(bm["avg_daily_cost_cny"])
+        base_hotel = bm.get("avg_hotel_price_cny", 500)
+        base_daily = bm["avg_daily_cost_cny"]
+        hotel_coeff = _hotel_dest_coefficient(base_hotel)
+        daily_coeff = _daily_dest_coefficient(base_daily)
         hotel_combined = tier_mult * season_mult * hotel_coeff
         daily_combined = tier_mult * season_mult * daily_coeff
 
+        # 住宿参考（间价/晚），与 _compute_accommodation_metrics 保持一致
+        adj_hotel = round(base_hotel * hotel_combined)
+
+        # 日均参考（人均/天）：住宿部分用 hotel_coeff（与住宿参考逻辑对齐），
+        # 非住宿部分（餐饮/本地交通/门票）用 daily_coeff（较温和）
+        hotel_per_person = base_hotel / occupancy
+        non_hotel = max(base_daily - hotel_per_person, 0)
+        adj_daily = round(hotel_per_person * hotel_combined + non_hotel * daily_combined)
+
         adj = dict(bm)
-        adj["avg_daily_cost_cny"] = round(bm["avg_daily_cost_cny"] * daily_combined)
-        adj["avg_hotel_price_cny"] = round(bm.get("avg_hotel_price_cny", 500) * hotel_combined)
+        adj["avg_daily_cost_cny"] = adj_daily
+        adj["avg_hotel_price_cny"] = adj_hotel
         adj["_season_label"] = season_label
         adj["_season_multiplier"] = season_mult
         adj["_hotel_dest_coefficient"] = round(hotel_coeff, 3)
         adj["_daily_dest_coefficient"] = round(daily_coeff, 3)
-        adj["_original_daily_cost"] = bm["avg_daily_cost_cny"]
-        adj["_original_hotel_price"] = bm.get("avg_hotel_price_cny", 500)
+        adj["_original_daily_cost"] = base_daily
+        adj["_original_hotel_price"] = base_hotel
         adjusted[city] = adj
 
     for city, bm in raw_benchmarks.items():
@@ -213,6 +233,10 @@ _MAJOR_TRANSPORT_KW = re.compile(
 
 _INTERCITY_ROUTE_RE = re.compile(
     r'[\u4e00-\u9fa5A-Za-z]{2,}(?:[到至]|\u2192|-\s*>)[\u4e00-\u9fa5A-Za-z]{2,}')
+
+# 全程/多日同一辆车跨多城时，用户常只写「包车」而不写「A→B」，不应一律按未记录跨城扣分。
+# 仅用于交通规划 coverage 补充，不并入 _is_transit_day（避免市内包车游误判为跨城干扰节奏等维度）。
+_CHARTER_RENTAL_SELF_DRIVE_IN_TRANSPORT = re.compile(r'包车|租车|自驾')
 
 _LOCAL_TRANSPORT_PREFIX = re.compile(
     r'^(?:打车|叫车|骑车|坐车|搭车|乘车|出租|的士|地铁|公交|巴士|'
@@ -288,6 +312,16 @@ def _is_transit_day(day):
             continue
         s = t.strip()
         if _MAJOR_TRANSPORT_KW.search(s) or _INTERCITY_ROUTE_RE.search(s):
+            return True
+    return False
+
+
+def _transport_mentions_charter_rental_or_self_drive(day):
+    """transport 中是否出现包车/租车/自驾（有记录即算，用于 coverage 缺口填补）。"""
+    for t in day.get("transport") or []:
+        if not isinstance(t, str):
+            continue
+        if _CHARTER_RENTAL_SELF_DRIVE_IN_TRANSPORT.search(t.strip()):
             return True
     return False
 
@@ -764,7 +798,22 @@ def _compute_transport_metrics(legs):
     inferred_transit = max(len(cities_in_order) - 1, 0)
     transit_total = max(transit_total, inferred_transit)
 
-    coverage = has_transport_transit / transit_total if transit_total > 0 else 1.0
+    # 非「航班/高铁/城A→城B」类词条、但已写明包车/租车/自驾的日期：按条数补足未覆盖的跨城记录缺口（封顶分母）
+    charter_supp = 0
+    if transit_total > 0:
+        for leg in legs:
+            for day in leg.get("days", []):
+                if not day.get("transport"):
+                    continue
+                if _is_transit_day(day):
+                    continue
+                if _transport_mentions_charter_rental_or_self_drive(day):
+                    charter_supp += 1
+
+    gap = max(0, transit_total - has_transport_transit)
+    effective_has = has_transport_transit + min(charter_supp, gap)
+
+    coverage = effective_has / transit_total if transit_total > 0 else 1.0
     base_score = 70 + coverage * 25
     if has_backtrack:
         base_score -= 15
@@ -1419,7 +1468,7 @@ def generate_evaluation(trip_dict, profile=None, past_visited=None):
     household_size = _extract_household_size(profile)
     tier_mult = _compute_tier_multiplier(profile, household_size)
     tier_lbl = _tier_label(tier_mult)
-    benchmarks = _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs)
+    benchmarks = _build_adjusted_benchmarks(raw_benchmarks, tier_mult, legs, traveler_count)
 
     cost_m = _compute_cost_metrics(trip_dict, legs, expenses, benchmarks)
     pace_m = _compute_pace_metrics(legs, benchmarks)

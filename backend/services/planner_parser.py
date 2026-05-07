@@ -69,6 +69,19 @@ def parse_planner_text(ocr_text: str, context_year: Optional[int] = None) -> dic
     if not lines:
         raise ValueError('图片未识别出文本，请确认图片清晰度或上传 PiTravel/圆周旅迹 风格的行程海报。')
 
+    # OCR 质量检查：若大比例文字是拉丁乱码（非中文/数字/斜杠）则拒绝解析，
+    # 避免手机 App 截图被当作海报处理后产生垃圾数据。
+    # 策略：统计所有行中 CJK 字符比例，低于阈值说明 OCR 无法有效识别此图。
+    _all_chars = ''.join(lines)
+    if len(_all_chars) >= 20:
+        _cjk_count = sum(1 for c in _all_chars if '\u4e00' <= c <= '\u9fff')
+        _cjk_ratio = _cjk_count / len(_all_chars)
+        # PiTravel 海报以中文为主，合理比例 ≥ 30%；截图乱码通常 < 10%
+        if _cjk_ratio < 0.10:
+            raise ValueError(
+                '图片内容无法识别（识别到的中文字符过少），请上传清晰的 PiTravel/圆周旅迹 行程海报图片。'
+            )
+
     day_blocks = _split_by_day(lines)
     if not day_blocks:
         raise ValueError('未识别到任何日期行（如 09.29/周日），请确认上传的是 PiTravel/圆周旅迹 风格的行程海报。')
@@ -76,6 +89,20 @@ def parse_planner_text(ocr_text: str, context_year: Optional[int] = None) -> dic
     title = _extract_title(lines, day_blocks[0][3])
     start_date, end_date = _extract_dates(lines, day_blocks, context_year=context_year)
     legs = _build_legs(day_blocks, start_date)
+
+    # 活动乱码过滤：OCR 质量差时（非中文截图、低分辨率）会产生大量拉丁乱码，
+    # 将中文比例低于 30% 且长度超过 4 字符的活动视为乱码删除，防止污染行程数据。
+    # 保留：纯中文活动（CJK 比例高），以及短词（≤4字符，可能是合法缩写）。
+    def _is_garbled_activity(name: str) -> bool:
+        if len(name) <= 4:
+            return False  # 短词不判断（可能是合法缩写）
+        cjk = sum(1 for c in name if '\u4e00' <= c <= '\u9fff')
+        return cjk / len(name) < 0.30
+
+    for leg in legs:
+        for day in leg.get('days', []):
+            raw = day.get('activities', [])
+            day['activities'] = [a for a in raw if not _is_garbled_activity(a)]
 
     return {
         'type': 'trip',
@@ -285,12 +312,19 @@ def _build_legs(day_blocks, start_date: Optional[date]):
         # Accommodation: last hotel line from all raw content
         accommodation = _extract_accommodation(raw_lines)
 
-        # Activities: exclude airports, hotels, and PiTravel branding watermarks
+        # Activities: exclude airports, hotels, and PiTravel branding watermarks.
+        # Exception: a non-last hotel-like line that carries a parenthetical
+        # secondary name — e.g. "蓝天酒店（蓝天塔）" — signals a visited landmark
+        # that happens to share its name with a hotel.  Pure hotel names without
+        # a parenthetical remain excluded from activities.
         activities = [
             ln for ln in raw_lines
             if not _AIRPORT_RE.search(ln)
-            and not _ACCOM_HINT_RE.search(ln)
             and not _PITRAVEL_NOISE_RE.search(ln)
+            and (
+                not _ACCOM_HINT_RE.search(ln)
+                or (ln != accommodation and _LANDMARK_PAREN_RE.search(ln))
+            )
         ]
 
         city = _infer_city(raw_lines, prev_city)
@@ -367,6 +401,9 @@ _PITRAVEL_NOISE_RE = re.compile(
     r'[圆园]周旅迹|时.{0,3}自由.{0,6}经验',
     re.IGNORECASE,
 )
+
+# 括号副名：形如「蓝天酒店（蓝天塔）」表示地标性兼用场所，应保留为 activity
+_LANDMARK_PAREN_RE = re.compile(r'[（(].{1,20}[）)]')
 
 
 def _pair_airports(airport_lines: List[str]) -> List[str]:

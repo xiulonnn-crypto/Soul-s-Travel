@@ -48,10 +48,14 @@ def _all_days(result):
 
 
 def _day(result, date_str):
+    # 同一日期可能存在多个 sub-leg（链式多城市日），取最后一个（最终目的地，含住宿）。
+    found = None
     for d in _all_days(result):
         if d["date"] == date_str:
-            return d
-    raise AssertionError(f"未找到日期 {date_str}；现有 dates: {[d['date'] for d in _all_days(result)]}")
+            found = d
+    if found is None:
+        raise AssertionError(f"未找到日期 {date_str}；现有 dates: {[d['date'] for d in _all_days(result)]}")
+    return found
 
 
 # ── Bug A：_normalize 不应误折叠合法相邻相同字符 ──────────────────────────

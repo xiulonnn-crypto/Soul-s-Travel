@@ -91,6 +91,26 @@ def parse_url():
     if not url:
         return jsonify({"error": "缺少 url 参数"}), 400
 
+    from urllib.parse import urlparse
+    hostname = urlparse(url).hostname or ''
+
+    # ── PiTravel (圆周旅迹) ── JSON API，无需 Playwright
+    if 'pitravel.cn' in hostname:
+        from services.url_scraper import scrape_pitravel_api
+        from services.ai_parser import parse_pitravel_api
+        try:
+            journey_data = scrape_pitravel_api(url)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": f"抓取失败: {e}"}), 502
+        try:
+            result = parse_pitravel_api(journey_data)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": f"解析失败: {e}"}), 500
+
+    # ── 穷游 (qyer) ── Playwright 抓取
     from services.url_scraper import scrape_qyer_url
     from services.ai_parser import parse_qyer_web
 

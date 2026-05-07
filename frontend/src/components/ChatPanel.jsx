@@ -6,7 +6,7 @@ import './ChatPanel.css'
 
 export default function ChatPanel({ onParsed, getContextYear }) {
   const [messages, setMessages] = useState([
-    { role: 'ai', text: '你好！我可以帮你快速创建行程 ✨\n\n📄 上传行程 PDF\n🖼️ 上传行程表图片\n📝 粘贴文字描述\n🔗 粘贴穷游行程助手链接\n💬 直接告诉我去了哪里' }
+    { role: 'ai', text: '你好！我可以帮你快速创建行程 ✨\n\n📄 上传行程 PDF\n🖼️ 上传行程表图片\n📝 粘贴文字描述\n🔗 粘贴穷游行程助手链接\n🌍 粘贴圆周旅迹（PiTravel）链接\n💬 直接告诉我去了哪里' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,6 +15,7 @@ export default function ChatPanel({ onParsed, getContextYear }) {
   const addMsg = (role, text) => setMessages(prev => [...prev, { role, text }])
 
   const isQyerUrl = (text) => /plan\.qyer\.com\/trip\//.test(text)
+  const isPitravelUrl = (text) => /pitravel\.cn\/(web\/journey\/detail|journey)\/\d+/.test(text)
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -24,7 +25,10 @@ export default function ChatPanel({ onParsed, getContextYear }) {
     setLoading(true)
     try {
       let result
-      if (isQyerUrl(text)) {
+      if (isPitravelUrl(text)) {
+        addMsg('ai', '正在从圆周旅迹读取行程数据，请稍候...')
+        result = await parseApi.url(text)
+      } else if (isQyerUrl(text)) {
         addMsg('ai', '正在从穷游网抓取行程数据，请稍候...')
         result = await parseApi.url(text)
       } else {

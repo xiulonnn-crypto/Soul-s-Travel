@@ -591,7 +591,7 @@
     "country": "越南",
     "avg_daily_cost_cny": 640,
     "avg_hotel_price_cny": 350,
-    "must_see": ["美溪海滩", "巴拿山", "会安古城", "山茶半岛", "龙桥", "五行山"],
+    "must_see": ["美溪海滩", "巴拿山|Ba Na Hills", "会安古城|会安古镇|會安古鎮|会安", "山茶半岛|Sơn Trà|山茶", "龙桥|Dragon Bridge", "五行山|Marble Mountains"],
     "typical_stay_days": 3,
     "tips": "2月至5月天气最佳",
     "seasons": {
@@ -792,6 +792,18 @@
     }
   },
   "锡吉里耶": {
+    "country": "斯里兰卡",
+    "avg_daily_cost_cny": 820,
+    "avg_hotel_price_cny": 450,
+    "must_see": ["狮子岩", "锡吉里耶博物馆", "皮杜兰加拉岩", "锡吉里耶壁画", "水上花园", "眼镜蛇岩"],
+    "typical_stay_days": 1,
+    "tips": "清晨攀登狮子岩避开高温，登顶可俯瞰整片丛林",
+    "seasons": {
+      "peak": {"months": [12, 1, 2, 3], "multiplier": 1.25},
+      "off_peak": {"months": [5, 6, 7, 8, 9], "multiplier": 0.80}
+    }
+  },
+  "锡吉利耶": {
     "country": "斯里兰卡",
     "avg_daily_cost_cny": 820,
     "avg_hotel_price_cny": 450,

@@ -29,26 +29,97 @@ const mergePreservingEmpty = (base, result) => {
 }
 
 /**
- * 深度 legs 合并：使用 result 的 leg/city 结构（新来源的城市编排优先），
- * 但对每个有 date 字段的 day，与 base 中同日期的 day 做逐字段 mergePreservingEmpty，
- * 确保空字段（如 transport=[]）不会覆盖 base 中已有的非空值。
- * 没有 date 字段的 day 直接使用 result 的版本（兼容老格式）。
+ * 深度 legs 合并：以 base（已有数据）的城市/leg 结构为主，
+ * 对每个有 date 字段的 day 做逐字段合并——base 已有的非空字段不被 result 覆盖，
+ * result 中有内容而 base 为空的字段才补充进来。
+ * result 中出现而 base 没有的额外 leg/day 追加到末尾。
+ * 没有 date 字段的 day 直接使用 base 的版本（兼容老格式）。
+ *
+ * 设计原则：「PDF 先传，图片后传」时，PDF 已解析的航班/住宿/城市不被 OCR 乱码覆盖；
+ * 图片仅用于填充 PDF 中尚未提取的空字段（如部分活动名称）。
  */
 const mergeLegsDeep = (baseLegs, resultLegs) => {
-  // 建立 date → day 索引（扁平化 base 所有 leg 的所有 day）
-  const baseDayByDate = {}
-  for (const leg of baseLegs || []) {
+  // 双重索引：
+  //   resultDayByDateCity["date::city"] → 精确匹配（多城市同日场景必须）
+  //   resultDayByDate["date"]           → 日期兜底（城市名称不匹配时使用）
+  const resultDayByDateCity = {}
+  const resultDayByDate = {}
+  for (const leg of resultLegs || []) {
     for (const day of leg.days || []) {
-      if (day.date) baseDayByDate[day.date] = day
+      if (!day.date) continue
+      resultDayByDateCity[`${day.date}::${leg.city}`] = day
+      resultDayByDate[day.date] = day  // 同日期最后一个 leg 覆盖（兜底）
     }
   }
-  return (resultLegs || []).map((leg) => ({
+
+  // 预计算 base 中每个 date 的出现次数（同 date 多 sub-leg 场景）
+  const dateOccurrenceCounts = {}
+  for (const leg of baseLegs || []) {
+    for (const day of leg.days || []) {
+      if (day.date) dateOccurrenceCounts[day.date] = (dateOccurrenceCounts[day.date] || 0) + 1
+    }
+  }
+
+  // 记录 base 已覆盖的 date，用于追加 result 独有的 day
+  const baseDates = new Set()
+  const dateSeenCounts = {}
+
+  const merged = (baseLegs || []).map((leg) => ({
     ...leg,
     days: (leg.days || []).map((day) => {
-      const baseDay = day.date ? baseDayByDate[day.date] : null
-      return baseDay ? mergePreservingEmpty(baseDay, day) : day
+      if (day.date) baseDates.add(day.date)
+      dateSeenCounts[day.date] = (dateSeenCounts[day.date] || 0) + 1
+
+      let resultDay = null
+      if (day.date) {
+        // 1. 优先按 date+city 精确匹配（处理维也纳+斯德哥尔摩同日期的情况）
+        const cityKey = `${day.date}::${leg.city}`
+        if (resultDayByDateCity[cityKey]) {
+          resultDay = resultDayByDateCity[cityKey]
+        } else {
+          // 2. 城市名不匹配时，用日期兜底——但仅对该日期的最后一个 sub-leg 应用，
+          //    避免 OCR 乱码数据被重复注入多个 sub-leg。
+          const isLastOccurrence =
+            dateSeenCounts[day.date] === dateOccurrenceCounts[day.date]
+          if (isLastOccurrence) resultDay = resultDayByDate[day.date]
+        }
+      }
+
+      if (!resultDay) return day
+
+      // base 优先合并（现有数据不被新来源的空字段清空）
+      const mergedDay = { ...mergePreservingEmpty(resultDay, day) }
+
+      // 活动例外：新来源（如 PiTravel）的景点列表通常比 PDF 概览表更完整，
+      // 当新来源有更多活动时，优先使用新来源的列表。
+      const resultActs = resultDay.activities || []
+      const baseActs = day.activities || []
+      if (resultActs.length > baseActs.length) {
+        mergedDay.activities = resultActs
+      }
+
+      return mergedDay
     }),
   }))
+
+  // 追加 result 中有而 base 没有的 leg/day（如 PNG 包含更多天数）
+  // 仅追加日期在行程范围内的日期，过滤 OCR 错误推断的跨年/跨月日期
+  const baseDateList = Array.from(baseDates).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort()
+  const minDate = baseDateList[0] || null
+  const maxDate = baseDateList[baseDateList.length - 1] || null
+
+  for (const leg of resultLegs || []) {
+    const extraDays = (leg.days || []).filter((day) => {
+      if (!day.date || baseDates.has(day.date)) return false
+      if (!minDate || !maxDate) return true
+      // 只接受落在行程日期范围内的额外日期，拒绝 OCR 乱码产生的错误年月
+      return day.date >= minDate && day.date <= maxDate
+    })
+    if (extraDays.length > 0) {
+      merged.push({ ...leg, days: extraDays })
+    }
+  }
+  return merged
 }
 
 export function applyAction(base, result) {

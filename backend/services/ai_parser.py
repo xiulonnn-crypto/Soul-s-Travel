@@ -131,6 +131,11 @@ _EN_TO_ZH_CITY = {
     # 挪威
     'Oslo': '奥斯陆', 'Bergen': '卑尔根', 'Tromso': '特罗姆瑟',
     'Tromsø': '特罗姆瑟', 'Geiranger': '盖朗厄尔',
+    'Alesund': '奥勒松', 'Ålesund': '奥勒松',
+    'Trondheim': '特隆赫姆',
+    'Bodo': '博多', 'Bodø': '博多',
+    'Svolvær': '斯沃尔韦尔', 'Svolvaer': '斯沃尔韦尔',
+    'Lofoten': '罗弗敦群岛',
     # 肯尼亚
     'Nairobi': '内罗毕', 'Mombasa': '蒙巴萨', 'Malindi': '马林迪',
     'Maasai Mara': '马赛马拉国家保护区', 'Masai Mara': '马赛马拉国家保护区',
@@ -187,6 +192,7 @@ DEST_CITIES = [
     '赫尔辛基', '罗瓦涅米', '坦佩雷', '图尔库',
     # 挪威
     '奥斯陆', '卑尔根', '特罗姆瑟', '盖朗厄尔',
+    '奥勒松', '特隆赫姆', '博多', '斯沃尔韦尔',
     # 肯尼亚
     '内罗毕', '蒙巴萨', '马林迪',
     '马赛马拉国家保护区', '纳库鲁', '奈瓦沙',
@@ -254,6 +260,7 @@ COUNTRY_MAP = {
     '赫尔辛基': '芬兰', '罗瓦涅米': '芬兰', '坦佩雷': '芬兰', '图尔库': '芬兰',
     # 挪威
     '奥斯陆': '挪威', '卑尔根': '挪威', '特罗姆瑟': '挪威', '盖朗厄尔': '挪威',
+    '奥勒松': '挪威', '特隆赫姆': '挪威', '博多': '挪威', '斯沃尔韦尔': '挪威',
     # 肯尼亚
     '内罗毕': '肯尼亚', '蒙巴萨': '肯尼亚', '马林迪': '肯尼亚',
     '马赛马拉国家保护区': '肯尼亚', '纳库鲁': '肯尼亚', '奈瓦沙': '肯尼亚',
@@ -576,11 +583,11 @@ def _extract_activities(chunk):
     行程里是店铺招牌保留原文的常见情形。
     """
     _CJK_KANA = r'\u4e00-\u9fff\u3040-\u30ff'
-    # 主规则：含 CJK/假名 的景点名
+    # 主规则：含 CJK/假名 的景点名。前缀允许 ASCII 字母/空格及 Unicode 引号（如 "大理石教堂"腓特烈教堂）。
     primary_re = re.compile(
-        r'\d+\.\s+([A-Za-z ]*['
+        r'\d+\.\s+([A-Za-z \u2018\u2019\u201c\u201d"\']*['
         + _CJK_KANA + r']['
-        + _CJK_KANA + r'·\-A-Za-z0-9]*(?:\([^)]+\))?)',
+        + _CJK_KANA + r'\u2018\u2019\u201c\u201d"·\-A-Za-z0-9]*(?:\([^)]+\))?)',
     )
     # 兜底：纯英文景点名；要求起始 ASCII 字母 + 内部 ≥3 字符 + 结尾为字母/数字，
     # 并以行尾或两个以上空白为边界（避免吞到后续列）。下限 5 字符防止把 '1. Tips'
@@ -1372,27 +1379,97 @@ def parse_text(text: str) -> dict:
                         if rt.group(2) in DEST_CITIES:
                             city = rt.group(2)
 
-            if city not in city_legs:
-                city_legs[city] = {'days': [], 'start': None, 'end': None}
+            # 同一天多城市检测：当 transport 构成完整链 A→B→C（连续，且所有目的地都在
+            # DEST_CITIES），为链上每个目的城市分别建 sub-leg，避免只记录第一段终点。
+            # 典型场景：Day 1 北京→维也纳（游览）→斯德哥尔摩（过夜）。
+            _t_pairs = []
+            for _t in transport:
+                _tm = re.search(r'([\u4e00-\u9fff]{2,12})→([\u4e00-\u9fff]{2,12})', _t)
+                if _tm:
+                    _t_pairs.append((_tm.group(1), _tm.group(2), _t))
+
+            _is_chain = (
+                len(_t_pairs) >= 2
+                and '→' in chunk
+                and all(_t_pairs[i][1] == _t_pairs[i + 1][0] for i in range(len(_t_pairs) - 1))
+                and all(_dst in DEST_CITIES for _, _dst, _ in _t_pairs)
+            )
 
             accommodation = _extract_accommodation(chunk)
 
-            day_entry = {
-                'day_number': day_num,
-                'date': day_date.strftime('%Y-%m-%d') if day_date else None,
-                'description': ', '.join(activities[:4]) if activities else f'Day {day_num}',
-                'highlights': None,
-                'activities': activities,
-                'transport': transport,
-                'accommodation': accommodation,
-            }
+            # 单路由「出发城市日间活动」分拆：当单段路由的出发城市名出现在当日活动名称中
+            # （如 Day10 赫尔辛基→哥本哈根，活动有"赫尔辛基大教堂"），说明活动发生在出发城
+            # 市而非到达城市，应分拆为：出发城市 sub-leg（含活动）+ 到达城市 sub-leg（含交通/住宿）。
+            # 不影响链式多城市路由（_is_chain 优先）；不影响出发城市名未出现在活动中的正常情况。
+            _is_activity_split = (
+                not _is_chain
+                and len(_t_pairs) == 1
+                and '→' in chunk
+                and _t_pairs[0][0] in DEST_CITIES
+                and _t_pairs[0][1] in DEST_CITIES
+                and len(activities) > 0
+                and any(_t_pairs[0][0] in a for a in activities)
+                and seq_idx != len(day_chunks) - 1
+            )
 
-            city_legs[city]['days'].append(day_entry)
-            if day_date:
-                if not city_legs[city]['start'] or day_date < city_legs[city]['start']:
-                    city_legs[city]['start'] = day_date
-                if not city_legs[city]['end'] or day_date > city_legs[city]['end']:
-                    city_legs[city]['end'] = day_date
+            if _is_chain or _is_activity_split:
+                # 确定每个 stop 的 (src, dst, transport_entry, activities, is_last)
+                if _is_chain:
+                    _stops = [
+                        (_src, _dst, [_full_t], [] if _i < len(_t_pairs) - 1 else activities)
+                        for _i, (_src, _dst, _full_t) in enumerate(_t_pairs)
+                    ]
+                else:
+                    # 单路由活动分拆：出发城市带活动，到达城市带交通+住宿
+                    _src0, _dst0, _full_t0 = _t_pairs[0]
+                    _stops = [
+                        (_src0, _src0, [], activities),   # 出发城市：活动归这里，无交通
+                        (_src0, _dst0, [_full_t0], []),   # 到达城市：交通归这里
+                    ]
+
+                for _i, (_src, _dst, _stop_transport, _stop_activities) in enumerate(_stops):
+                    _is_last_stop = (_i == len(_stops) - 1)
+                    _leg_city = _dst
+                    if _leg_city not in city_legs:
+                        city_legs[_leg_city] = {'days': [], 'start': None, 'end': None}
+                    _sub_entry = {
+                        'day_number': day_num,
+                        'date': day_date.strftime('%Y-%m-%d') if day_date else None,
+                        'description': (
+                            ', '.join(_stop_activities[:4]) if _stop_activities
+                            else f'Day {day_num}'
+                        ),
+                        'highlights': None,
+                        'activities': _stop_activities,
+                        'transport': _stop_transport,
+                        'accommodation': accommodation if _is_last_stop else None,
+                    }
+                    city_legs[_leg_city]['days'].append(_sub_entry)
+                    if day_date:
+                        if not city_legs[_leg_city]['start'] or day_date < city_legs[_leg_city]['start']:
+                            city_legs[_leg_city]['start'] = day_date
+                        if not city_legs[_leg_city]['end'] or day_date > city_legs[_leg_city]['end']:
+                            city_legs[_leg_city]['end'] = day_date
+            else:
+                if city not in city_legs:
+                    city_legs[city] = {'days': [], 'start': None, 'end': None}
+
+                day_entry = {
+                    'day_number': day_num,
+                    'date': day_date.strftime('%Y-%m-%d') if day_date else None,
+                    'description': ', '.join(activities[:4]) if activities else f'Day {day_num}',
+                    'highlights': None,
+                    'activities': activities,
+                    'transport': transport,
+                    'accommodation': accommodation,
+                }
+
+                city_legs[city]['days'].append(day_entry)
+                if day_date:
+                    if not city_legs[city]['start'] or day_date < city_legs[city]['start']:
+                        city_legs[city]['start'] = day_date
+                    if not city_legs[city]['end'] or day_date > city_legs[city]['end']:
+                        city_legs[city]['end'] = day_date
 
     legs = []
     for i, (city, info) in enumerate(city_legs.items()):
@@ -1479,12 +1556,16 @@ def parse_text(text: str) -> dict:
     # 视为高质量——例如概览表中的「竞技场海滩酒店」；不要被 expense 表里同一家酒店
     # 的简写名（如「马尔代夫竞技海滩酒店」）覆盖。仅当 chunk 抽取缺失或明显错误
     # （纯英文拼接、如「National Museum Hotel」）时才采用 expense 回填值。
+    # 同一日期多 sub-leg 场景（A→B→C 同天多城）：从后往前遍历，确保住宿只
+    # 分配给最后一个 sub-leg（最终目的地城市），不污染前序中转 sub-leg。
     _GOOD_ACCOM_RE = re.compile(r'[\u4e00-\u9fff]{2,}.*?(?:酒店|宾馆|度假村|客栈|旅馆|民宿)')
-    for day in all_days:
-        if day['date'] in date_to_accom:
+    _accom_assigned_dates: set = set()
+    for day in reversed(list(all_days)):
+        if day['date'] in date_to_accom and day['date'] not in _accom_assigned_dates:
             cur = day.get('accommodation') or ''
             if not _GOOD_ACCOM_RE.search(cur):
                 day['accommodation'] = date_to_accom[day['date']]
+            _accom_assigned_dates.add(day['date'])
 
     if _title_is_default:
         year = start_date.year if start_date else None
@@ -1508,4 +1589,347 @@ def parse_text(text: str) -> dict:
         },
         'legs': legs,
         'expenses': expenses,
+    }
+
+
+# ---------------------------------------------------------------------------
+# PiTravel JSON parser
+# ---------------------------------------------------------------------------
+
+def parse_pitravel_api(journey_data: dict) -> dict:
+    """Convert PiTravel API JSON (data.journey) to the standard trip/legs/expenses dict.
+
+    Event types observed in the wild:
+        101  Restaurant
+        102  Accommodation
+        103  Transit waypoint (metro stop, bus stop, ferry pier, etc.)
+        104  Sightseeing POI
+        201  Flight (contains transport_info with times)
+        203  Non-flight transport (ship, ferry, bus)
+        300  Activity (fishing, aurora viewing, etc.)
+    """
+    import datetime
+    from collections import OrderedDict
+
+    j = journey_data.get('journey', {})
+
+    # ── header ──
+    title = j.get('name', '')
+    start_ts = j.get('start_time', 0) // 1000
+    end_ts = j.get('end_time', 0) // 1000
+
+    start_date = datetime.date.fromtimestamp(start_ts) if start_ts else None
+    end_date = datetime.date.fromtimestamp(end_ts) if end_ts else None
+
+    # ── Noise filters ──
+    # 1. Transit infrastructure keywords
+    _TRANSIT_KW = re.compile(
+        r'机场|机場|Airport|车站|火車站|总站|码头|Station|Terminal|Bahnhof|Gare|Flygplats'
+        r'|Aéroport|Flughafen|港口|渡口|Expressway',
+        re.IGNORECASE,
+    )
+    # 2. Scandinavian/European street-name substrings → nav waypoints.
+    # Use substring match (not word-boundary) to catch compound names like "Landstraße", "Kaigaten".
+    _STREET_SUFFIX_RE = re.compile(
+        r'gate[nar]?|gata[n]?|gade[n]?|vei[en]?|vej[en]?|straß|strasse|gasse'
+        r'|plads|Circle K|\d+[-/]\d+',
+        re.IGNORECASE,
+    )
+    # 3. Hurtigruten coastal voyage stops look like "Hurtigruten [City]" – ship transport, not POI
+    _HURTIGRUTEN_RE = re.compile(r'^Hurtigruten\s+\S', re.IGNORECASE)
+    # 4. Too-generic single words (vessel/transport names used as POI placeholders)
+    _GENERIC_RE = re.compile(r'^(?:Ship|Bus|Ferry|Boat|Train|Car|Taxi|Shuttle)$', re.IGNORECASE)
+
+    def _is_nav_noise(name: str) -> bool:
+        return (
+            bool(_TRANSIT_KW.search(name))
+            or bool(_STREET_SUFFIX_RE.search(name))
+            or bool(_HURTIGRUTEN_RE.match(name))
+            or bool(_GENERIC_RE.match(name))
+        )
+
+    # ── PiTravel-specific city name normalisation ──
+    # The API returns Chinese city names that differ from our DEST_CITIES spellings.
+    _PITRAVEL_CITY_NORM = {
+        '博德': '博多',         # Bodø (Norwegian city)
+        '西沃格岛': '斯沃尔韦尔',  # Vestvågøy island → Svolvær
+        '瓦甘': '斯沃尔韦尔',     # Vågan municipality → Svolvær
+    }
+
+    # ── Map city name to known Chinese city ──
+    def _resolve_city(raw: str) -> str:
+        # PiTravel-specific overrides first
+        if raw in _PITRAVEL_CITY_NORM:
+            return _PITRAVEL_CITY_NORM[raw]
+        if raw in DEST_CITIES:
+            return raw
+        for en, zh in _EN_TO_ZH_CITY.items():
+            if en.lower() in raw.lower() or raw.lower() in en.lower():
+                if zh in DEST_CITIES:
+                    return zh
+        return raw
+
+    # ── Iterate day_plans ──
+    city_legs: 'OrderedDict[str, dict]' = OrderedDict()
+
+    day_plans = j.get('day_plans', [])
+    for seq_idx, day_plan in enumerate(day_plans):
+        day_idx = day_plan.get('day_index', 0)
+        if day_idx <= 0:
+            # day_index=-1 = "待计划" placeholder bucket; skip
+            continue
+
+        day_num = day_idx  # already 1-indexed in the API
+        ts = day_plan.get('timestamp', 0) // 1000
+        day_date = datetime.date.fromtimestamp(ts) if ts else (
+            start_date + datetime.timedelta(days=seq_idx) if start_date else None
+        )
+
+        events = day_plan.get('events', [])
+
+        # -- Skip completely empty days (no events at all) --
+        if not events:
+            continue
+
+        # -- Determine primary city for the day --
+        # Prefer bind_political_info at political_level 3 (city/district level).
+        # When only country-level (level=1) info exists (ship days at sea),
+        # fall back to the start_event name which gives the port city.
+        bp_cities_lv3 = []
+        for bp in day_plan.get('bind_political_info', []):
+            if bp.get('political_level', 0) == 3:
+                name = bp.get('name', '').strip()
+                if name and name not in bp_cities_lv3:
+                    bp_cities_lv3.append(name)
+
+        if bp_cities_lv3:
+            raw_cities = bp_cities_lv3
+        else:
+            # Fall back to start_event (port of departure for ship days)
+            start_ev = day_plan.get('start_event') or {}
+            raw_name = start_ev.get('name', '').strip() if isinstance(start_ev, dict) else ''
+            raw_cities = [raw_name] if raw_name else []
+
+        resolved_cities = [_resolve_city(c) for c in raw_cities]
+        # Pick last DEST_CITIES match; fall back to last resolved; finally '[待确认]'
+        city = next(
+            (c for c in reversed(resolved_cities) if c in DEST_CITIES),
+            (resolved_cities[-1] if resolved_cities else '[待确认]'),
+        )
+
+        # ── Helper: extract DEST_CITY from airport/location name (e.g. "维也纳国际机场" → "维也纳") ──
+        def _city_from_dest_name(dest_name: str) -> str:
+            """Scan increasing prefix lengths to find a DEST_CITIES match."""
+            norm = _PITRAVEL_CITY_NORM.get(dest_name, dest_name)
+            if norm in DEST_CITIES:
+                return norm
+            for length in range(2, len(dest_name) + 1):
+                candidate = dest_name[:length]
+                if candidate in _PITRAVEL_CITY_NORM:
+                    return _PITRAVEL_CITY_NORM[candidate]
+                if candidate in DEST_CITIES:
+                    return candidate
+            return _resolve_city(dest_name)
+
+        # ── Helper: build a transport label from an event ──
+        def _transport_label(ev_name: str, ev_type: int, ev: dict) -> str:
+            route = re.sub(r'\s*出发\s*至\s*', '→', ev_name)
+            route = re.sub(r'出发$', '', route).strip()
+            if ev_type == 201:
+                ti = ev.get('transport_info') or {}
+                dep_ts = ti.get('transport_start_time', 0) // 1000
+                arr_ts = ti.get('transport_end_time', 0) // 1000
+                num = (ti.get('transport_num') or '').strip()
+                dep_time = datetime.datetime.fromtimestamp(dep_ts).strftime('%H:%M') if dep_ts else ''
+                arr_time = datetime.datetime.fromtimestamp(arr_ts).strftime('%H:%M') if arr_ts else ''
+                label = f"{num}:{route}" if num else route
+                if dep_time:
+                    label = f"{label}({dep_time}-{arr_time})"
+                return label
+            return route  # type 203: ship/ferry
+
+        # ── Count transport events to detect multi-city days ──
+        _transport_ev_list = [ev for ev in events if ev.get('event_type') in (201, 203)]
+
+        # 单段航班（type=201）+ 出发前有实际活动 → 也需分拆，把出发城市的活动归到出发 leg。
+        # 例如 Day9: 特罗姆瑟活动 [特罗姆瑟→赫尔辛基] Day10: 赫尔辛基活动 [赫尔辛基→哥本哈根]
+        # 注意：仅对航班生效；邮轮（type=203）通常是隔夜，出发城市当天活动仍归出发城市 leg。
+        _first_transport_type = _transport_ev_list[0].get('event_type') if _transport_ev_list else None
+        _pre_transport_acts = []
+        for _ev in events:
+            if _ev.get('event_type') in (201, 203):
+                break
+            _n = (_ev.get('name') or '').strip()
+            if _ev.get('event_type') in (103, 104, 300, 101) and _n and not _is_nav_noise(_n):
+                _pre_transport_acts.append(_n)
+
+        _is_multi_city_day = (
+            len(_transport_ev_list) >= 2
+            or (len(_transport_ev_list) == 1
+                and _first_transport_type == 201  # 只对航班分拆，不对邮轮分拆
+                and len(_pre_transport_acts) > 0)
+        )
+
+        if _is_multi_city_day:
+            # 同日多城：按事件顺序逐段分配活动，每段交通之后的活动属于到达城市。
+            # 出发城市（第一段交通的 src）在初始化时即设为 _mc_current，
+            # 使得交通前的活动能归入出发城市 leg。
+            _mc_cities: list = []          # 城市出现顺序（去重）
+            _mc_acts: dict = {}            # city → activities
+            _mc_transport: dict = {}       # city → transport labels
+            _mc_accom: dict = {}           # city → accommodation
+
+            # 从第一段交通事件提取出发城市并预初始化
+            _init_src_city: str | None = None
+            if _transport_ev_list:
+                _ft = _transport_ev_list[0]
+                _ft_route = re.sub(r'\s*出发\s*至\s*', '→', (_ft.get('name') or '').strip())
+                _ft_route = re.sub(r'出发$', '', _ft_route).strip()
+                _ft_src_raw = _ft_route.split('→', 1)[0].strip()
+                _init_src_city = _city_from_dest_name(_ft_src_raw) if _ft_src_raw else None
+            _mc_current: str | None = _init_src_city  # 出发城市为初始当前城市
+            # 仅当出发城市是合法目的地（在 DEST_CITIES 中）且有出发前活动时，
+            # 才把它加入城市列表并为其创建 sub-leg。
+            # 否则（如北京出发机场不是目的地），跳过出发城市，活动在第一段交通后才开始计数。
+            if _init_src_city and _init_src_city in DEST_CITIES and _pre_transport_acts:
+                _mc_cities.append(_init_src_city)
+
+            for ev in events:
+                ev_type = ev.get('event_type')
+                ev_name = (ev.get('name') or '').strip()
+                if not ev_name:
+                    continue
+
+                if ev_type in (201, 203):
+                    # 交通事件：解析目的地城市，更新 current city
+                    route = re.sub(r'\s*出发\s*至\s*', '→', ev_name)
+                    route = re.sub(r'出发$', '', route).strip()
+                    _parts = route.split('→', 1)
+                    _dest_raw = _parts[1].strip() if len(_parts) > 1 else ''
+                    _dest_city = _city_from_dest_name(_dest_raw) if _dest_raw else '[待确认]'
+                    _label = _transport_label(ev_name, ev_type, ev)
+
+                    _mc_current = _dest_city
+                    if _dest_city not in _mc_cities:
+                        _mc_cities.append(_dest_city)
+                    _mc_transport.setdefault(_dest_city, [])
+                    if _label not in _mc_transport[_dest_city]:
+                        _mc_transport[_dest_city].append(_label)
+
+                elif ev_type == 102:
+                    if _mc_current and not _mc_accom.get(_mc_current):
+                        _mc_accom[_mc_current] = ev_name
+
+                elif ev_type in (103, 104, 300, 101):
+                    if _mc_current and not _is_nav_noise(ev_name):
+                        _mc_acts.setdefault(_mc_current, [])
+                        if ev_name not in _mc_acts[_mc_current]:
+                            _mc_acts[_mc_current].append(ev_name)
+
+            def _add_to_leg(leg_city: str, acts: list, tpts: list, accom):
+                if leg_city not in city_legs:
+                    city_legs[leg_city] = {'days': [], 'start': None, 'end': None}
+                entry = {
+                    'day_number': day_num,
+                    'date': day_date.strftime('%Y-%m-%d') if day_date else None,
+                    'description': ', '.join(acts[:4]) if acts else f'Day {day_num}',
+                    'highlights': None,
+                    'activities': acts,
+                    'transport': tpts,
+                    'accommodation': accom,
+                }
+                city_legs[leg_city]['days'].append(entry)
+                if day_date:
+                    if not city_legs[leg_city]['start'] or day_date < city_legs[leg_city]['start']:
+                        city_legs[leg_city]['start'] = day_date
+                    if not city_legs[leg_city]['end'] or day_date > city_legs[leg_city]['end']:
+                        city_legs[leg_city]['end'] = day_date
+
+            for _c in _mc_cities:
+                _add_to_leg(
+                    _c,
+                    _mc_acts.get(_c, []),
+                    _mc_transport.get(_c, []),
+                    _mc_accom.get(_c),
+                )
+
+        else:
+            # -- 单城市日：原有逻辑 --
+            activities: list = []
+            transport: list = []
+            accommodation: str | None = None
+
+            for ev in events:
+                ev_type = ev.get('event_type')
+                name = (ev.get('name') or '').strip()
+                if not name:
+                    continue
+
+                if ev_type in (201, 203):
+                    label = _transport_label(name, ev_type, ev)
+                    if label not in transport:
+                        transport.append(label)
+
+                elif ev_type == 102:
+                    # 旅行日住宿取最后一个：当天先有「退房」再有「入住」事件，
+                    # 需要的是到达城市的入住酒店（最后出现的），而非出发城市的退房酒店。
+                    accommodation = name
+
+                elif ev_type in (104, 300):
+                    if not _is_nav_noise(name) and name not in activities:
+                        activities.append(name)
+
+                elif ev_type == 103:
+                    if not _is_nav_noise(name) and name not in activities:
+                        activities.append(name)
+
+                elif ev_type == 101:
+                    if not _is_nav_noise(name) and name not in activities:
+                        activities.append(name)
+
+            # -- Add day to city leg --
+            if city not in city_legs:
+                city_legs[city] = {'days': [], 'start': None, 'end': None}
+
+            day_entry = {
+                'day_number': day_num,
+                'date': day_date.strftime('%Y-%m-%d') if day_date else None,
+                'description': ', '.join(activities[:4]) if activities else f'Day {day_num}',
+                'highlights': None,
+                'activities': activities,
+                'transport': transport,
+                'accommodation': accommodation,
+            }
+            city_legs[city]['days'].append(day_entry)
+            if day_date:
+                if not city_legs[city]['start'] or day_date < city_legs[city]['start']:
+                    city_legs[city]['start'] = day_date
+                if not city_legs[city]['end'] or day_date > city_legs[city]['end']:
+                    city_legs[city]['end'] = day_date
+
+    legs = []
+    for i, (city, info) in enumerate(city_legs.items()):
+        if not info['days']:
+            continue
+        legs.append({
+            'order_index': i,
+            'city': city,
+            'country': COUNTRY_MAP.get(city, '[待确认]'),
+            'start_date': info['start'].strftime('%Y-%m-%d') if info['start'] else None,
+            'end_date': info['end'].strftime('%Y-%m-%d') if info['end'] else None,
+            'days': info['days'],
+        })
+
+    return {
+        'type': 'trip',
+        'trip': {
+            'title': title,
+            'start_date': start_date.strftime('%Y-%m-%d') if start_date else None,
+            'end_date': end_date.strftime('%Y-%m-%d') if end_date else None,
+            'traveler_count': len(j.get('user_info_list', [])) or 1,
+            'description': title,
+            'status': 'completed',
+        },
+        'legs': legs,
+        'expenses': [],
     }
